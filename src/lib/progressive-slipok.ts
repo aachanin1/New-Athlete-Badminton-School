@@ -1,9 +1,8 @@
 import {
-  isSlipOKTimeout,
-  validateSlipData,
   verifySlipLive,
   type SlipOKResponse,
 } from '@/lib/slipok'
+import {classifyBookingSlip} from '@/lib/booking-slip-verification'
 
 export type ProgressiveSlipProviderMode = 'test' | 'live'
 export type ProgressiveSlipDecision = 'approved' | 'rejected' | 'under_review'
@@ -71,23 +70,6 @@ export async function resolveProgressiveSlipVerification(
     input.totalAmount,
   )
 
-  if (response.success && response.data) {
-    const validation = validateSlipData(response.data, input.totalAmount)
-    if (validation.valid) {
-      return {
-        decision: 'approved',
-        providerReference: response.data.transRef,
-        resultCode: 'SLIPOK_APPROVED',
-        verifiedAmount: response.data.amount,
-      }
-    }
-    return underReview('SLIPOK_VALIDATION_FAILED', response)
-  }
-
-  if (isSlipOKTimeout(response)) return underReview('SLIPOK_TIMEOUT', response)
-
-  return underReview(
-    response.code ? `SLIPOK_${String(response.code)}` : 'SLIPOK_REJECTED',
-    response,
-  )
+  const outcome=classifyBookingSlip(response,input.totalAmount)
+  return {...underReview(outcome.code,response),decision:outcome.decision}
 }

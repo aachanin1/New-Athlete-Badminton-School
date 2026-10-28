@@ -1,3 +1,4 @@
+import { historyBookingIds } from '@/lib/booking-reference'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { HistoryClient } from '@/components/dashboard/history-client'
@@ -244,7 +245,8 @@ async function fetchAttendanceRowsBySessionIds(
   ))
 }
 
-export default async function HistoryPage() {
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ orders?: string | string[] }> }) {
+  const focusBookingIds = historyBookingIds((await searchParams).orders)
   const supabase = await createClient()
   const adminSupabase = getServiceRoleClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -426,7 +428,28 @@ export default async function HistoryPage() {
     }
   })
 
-  const lifecycle = await loadBookingPaymentLifecycle(adminSupabase, bookings.map((booking) => booking.id))
+  const lifecycleRead = loadBookingPaymentLifecycle(adminSupabase, bookings.map(booking => booking.id))
+  // Only confirmed timestamps; Progressive does not create Legacy payment rows.
+  const verifiedPaymentAtMap: Record<string, string> = {}
+  const progressiveReceiptMap: Record<string, string> = {}
+  const rememberConfirmation = (id: string, at: string | null) => {
+    if (at && Number.isFinite(Date.parse(at)) && (!verifiedPaymentAtMap[id] || Date.parse(at) > Date.parse(verifiedPaymentAtMap[id]))) verifiedPaymentAtMap[id] = at
+  }
+  payments.filter(p => ['verified', 'approved'].includes(p.status)).forEach(p => rememberConfirmation(p.booking_id, p.verified_at))
+  type ApprovedBatch = { approved_at: string | null; slip_storage_path: string | null }
+  type ApprovedMember = { booking_id: string; payment_batch_id: string; progressive_payment_batches: ApprovedBatch | ApprovedBatch[] }
+  const approvedIds = bookings.filter(b => b.status === 'verified' && b.pricing_scope_id).map(b => b.id)
+  const confirmations = await readChunkedRangePages<ApprovedMember>('approved payment references', approvedIds,
+    (chunk, start, end) => adminSupabase.from('progressive_payment_batch_bookings')
+      .select('booking_id,payment_batch_id,progressive_payment_batches!inner(approved_at,status,slip_storage_path)')
+      .in('booking_id', chunk).eq('progressive_payment_batches.status', 'approved')
+      .order('booking_id').order('payment_batch_id').range(start, end) as unknown as Promise<QueryRowsResult<ApprovedMember>>)
+  confirmations.forEach(member => {
+    const batch = Array.isArray(member.progressive_payment_batches) ? member.progressive_payment_batches[0] : member.progressive_payment_batches
+    rememberConfirmation(member.booking_id, batch?.approved_at || null)
+    if (batch?.slip_storage_path) progressiveReceiptMap[member.booking_id] = member.payment_batch_id
+  })
+  const lifecycle = await lifecycleRead
   const sessionCountMap: Record<string, number> = {}
   const bookingChildNamesMap: Record<string, string[]> = {}
   const bookingSessionsMap: Record<string, SessionRow[]> = {}
@@ -447,7 +470,7 @@ export default async function HistoryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">
-          {isAdmin ? 'จัดการการจอง (Admin)' : 'ประวัติการจอง'}
+          {isAdmin ? 'จัดการการจอง (Admin)' : 'ประวัติการจอง - ชำระเงิน'}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           {isAdmin ? 'ดูและอนุมัติการจองทั้งหมด' : 'ดูประวัติการจองและการชำระเงินทั้งหมด'}
@@ -456,6 +479,9 @@ export default async function HistoryPage() {
       <HistoryClient
         bookings={bookings.map((booking) => ({ ...booking, status: lifecycle.get(booking.id)?.status || booking.status, lifecycle: lifecycle.get(booking.id) }))}
         payments={payments}
+        focusBookingIds={focusBookingIds}
+        verifiedPaymentAtMap={verifiedPaymentAtMap}
+        progressiveReceiptMap={progressiveReceiptMap}
         userId={user.id}
         isAdmin={isAdmin}
         sessionCountMap={sessionCountMap}

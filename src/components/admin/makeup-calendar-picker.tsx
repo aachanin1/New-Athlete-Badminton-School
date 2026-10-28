@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { makeupCalendarCells, type MakeupCalendarDay, type MakeupCalendarSlot } from '@/lib/makeup-calendar'
-import { Building2, Calendar, Clock } from 'lucide-react'
+import { Building2, Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import {adminMakeupCurrentMonth,adminMakeupShiftMonth} from '@/lib/admin-makeup-month'
 
 // Presentation clock only: never refreshes server data, sends a transaction,
 // or releases a mutation lock. Auth and the global Date implementation stay real.
@@ -23,17 +24,19 @@ export function useMakeupCalendarNow(open: boolean) {
   return now
 }
 
-export function MakeupCalendarPicker({ month, days, selectedDate, selectedSlot, disabled, onDateChange, onSlotChange }: {
+export function MakeupCalendarPicker({ month, days, selectedDate, selectedSlot, disabled, onDateChange, onSlotChange, onMonthChange }: {
   month: string; days: MakeupCalendarDay[]; selectedDate: string; selectedSlot: MakeupCalendarSlot | null
   disabled: boolean; onDateChange: (date: string) => void; onSlotChange: (slot: MakeupCalendarSlot) => void
+  onMonthChange?: (month:string) => void
 }) {
   const selectedDay = days.find(day => day.dateInput === selectedDate)
+  const previous=adminMakeupShiftMonth(month,-1),next=adminMakeupShiftMonth(month,1)
   return <div data-testid="makeup-calendar" className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,.95fr)]">
     <div className="min-w-0 rounded-lg border border-gray-200 p-3">
       <div className="mb-3 flex items-center justify-between gap-2"><div>
         <p className="text-sm font-semibold text-gray-950">{formatThaiMonthYear(`${month}-01`)}</p>
         <p className="text-xs text-gray-500">เลือกวันที่มีรอบเรียนเพื่อดูเวลา</p>
-      </div><Badge variant="outline">{days.length} วัน</Badge></div>
+      </div><div className="flex items-center gap-1"><Badge variant="outline">{days.length} วัน</Badge>{onMonthChange?<><Button type="button" variant="outline" size="icon" aria-label="เดือนปลายทางก่อนหน้า" disabled={disabled||!previous||previous<adminMakeupCurrentMonth()} onClick={()=>onMonthChange(previous)}><ChevronLeft className="h-4 w-4"/></Button><Button type="button" variant="outline" size="icon" aria-label="เดือนปลายทางถัดไป" disabled={disabled||!next} onClick={()=>onMonthChange(next)}><ChevronRight className="h-4 w-4"/></Button></>:null}</div></div>
       <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[11px] text-gray-500">{['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(day => <span key={day}>{day}</span>)}</div>
       <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {makeupCalendarCells(month, days).map((cell, index) => {

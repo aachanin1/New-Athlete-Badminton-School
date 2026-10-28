@@ -253,7 +253,10 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
       .eq('id', deletingChild.id)
 
     if (err) {
-      setError('เกิดข้อผิดพลาดในการลบ กรุณาลองใหม่')
+      setError(err.details === 'BOOKING_UX_LEARNER_REFERENCED' || err.code==='23503'&&err.message.includes('booking_ux_package_learners')
+        ? 'ผู้เรียนนี้ยังอยู่ในแพ็กเกจ จึงลบไม่ได้ กรุณาแก้ผู้เรียนในรายการที่ยังไม่ชำระ หรือติดต่อเจ้าหน้าที่สำหรับรายการที่ชำระแล้ว'
+        : 'เกิดข้อผิดพลาดในการลบ กรุณาลองใหม่')
+      setDeleteDialogOpen(false)
       setLoading(false)
       return
     }
@@ -286,6 +289,7 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
         </Button>
       </div>
 
+      {error && !dialogOpen && !deleteDialogOpen && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
       {children.length === 0 ? (
         <Card>
           <CardContent className="py-16">
@@ -364,6 +368,7 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
                       variant="outline"
                       size="sm"
                       className="text-red-500 border-red-200 hover:bg-red-50"
+                      aria-label={'ลบข้อมูล ' + child.full_name}
                       onClick={() => openDeleteDialog(child)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

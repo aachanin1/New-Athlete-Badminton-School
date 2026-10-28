@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Camera, Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, Save, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
@@ -177,6 +178,7 @@ export function ProfileSettingsClient({ initialProfile }: ProfileSettingsClientP
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <Card>
+        <div className="border-b p-4"><Link className="font-semibold text-blue-800 underline" href="/dashboard/children">จัดการข้อมูลลูก / เพิ่มผู้เรียน</Link></div>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg text-[#153c85]">
             <UserRound className="h-5 w-5 text-[#2748bf]" />

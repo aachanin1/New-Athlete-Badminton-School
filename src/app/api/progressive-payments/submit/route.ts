@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   approveProgressivePaymentBatch,
+  rejectProgressivePaymentBatch,
   submitProgressivePaymentBatch,
 } from '@/lib/progressive-payment-batch'
 import {
@@ -16,6 +17,7 @@ import {
   getProgressiveSlipProviderMode,
   resolveProgressiveSlipVerification,
 } from '@/lib/progressive-slipok'
+import {slipResultMessage} from '@/lib/booking-slip-result'
 
 export async function POST(request: NextRequest) {
   const access = await requireProgressivePaymentUser(request, { mutation: true })
@@ -62,6 +64,11 @@ export async function POST(request: NextRequest) {
       requestFingerprint: createVerificationRequestFingerprint(batch),
     })
 
+    if(attempt.status==='processing'&&attempt.shouldVerify===false){
+      return NextResponse.json({batch,checking:true,retryAfter:attempt.retryAfter,
+        reviewMessage:'ระบบกำลังตรวจสลิปเดิม กรุณารอสักครู่แล้วตรวจผลเดิม'})
+    }
+
     const resolution = attempt.status === 'resolved' && attempt.decision
       ? {
           decision: attempt.decision,
@@ -94,6 +101,9 @@ export async function POST(request: NextRequest) {
           hasCouponReservation: true,
         })
       }
+    } else if(resolution.decision==='rejected'){
+      await rejectProgressivePaymentBatch({batchId:batch.batchId,actorId:access.user.id,idempotencyKey:attempt.attemptId,
+        rejectionReason:slipResultMessage(resolution.resultCode),hasCouponReservation:true})
     } else {
       await markProgressiveBatchUnderReview(batch.batchId, resolution.resultCode)
     }

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         title: 'มีการจองใหม่ในระบบ',
         message: `มีการสร้างการจองให้คุณแล้ว${sessionText}`,
         type: 'schedule',
-        link_url: '/dashboard/history',
+        link_url: '/dashboard/payments',
       })
     }
 

@@ -37,6 +37,7 @@ export interface LessonWalletEntitlement {
 }
 
 export interface ResolveLessonWalletEntitlementInput {
+  durationMonths?: number | null
   courseType: CourseCategory
   purchasedQuantity: number
   originalSessionDate: string
@@ -178,6 +179,7 @@ export function resolveLessonWalletEntitlement({
   payments,
   pricingTiers,
   inheritedEntitlement,
+  durationMonths,
 }: ResolveLessonWalletEntitlementInput): LessonWalletEntitlement {
   if (inheritedEntitlement) return inheritedEntitlement
 
@@ -246,7 +248,7 @@ export function resolveLessonWalletEntitlement({
   return {
     policyType,
     entitlementStartedAt: new Date(approvalTimestamp).toISOString(),
-    expiresAt: bangkokMonthEndIso(expiryMonth.year, expiryMonth.month, isTenMonthPackage ? 9 : 0),
+    expiresAt: bangkokMonthEndIso(expiryMonth.year, expiryMonth.month, isTenMonthPackage ? (durationMonths ?? 10) - 1 : 0),
     paymentId: payment.id,
     pricingTier: {
       id: pricingTier.id,

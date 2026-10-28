@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { completeSourceRequest, pendingStorageKey, pendingEntries, storePending, readPending, clearPending } from '@/lib/complete-source-request'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, AlertTriangle, BookOpenCheck, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, Loader2, MapPin, RotateCcw, ShieldCheck, UserRound, WalletCards } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -227,7 +226,7 @@ function getCalendarStatusMarkerClass(session: SessionData) {
 
 export function ScheduleCalendarClient({
   currentUserId,
-  sessions,
+  sessions: serverSessions,
   learnerChildren,
   userName,
   initialMonth,
@@ -248,6 +247,15 @@ export function ScheduleCalendarClient({
   const walletRequestInFlight = useRef(false)
   const walletControllerRef = useRef<AbortController | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
+  const [confirmedWalletIds, setConfirmedWalletIds] = useState<Record<string, boolean>>({})
+  const confirmedWalletIdsRef = useRef(new Set<string>())
+  // Apply only a confirmed server result. Keep Family members together while
+  // router.refresh is in flight; a delayed RSC response cannot reopen Store.
+  const sessions = useMemo(() => groupFamilyPrivateScheduleUnits(serverSessions).flatMap(unit => {
+    if (!unit.sessions.some(s => confirmedWalletIds[s.id])) return unit.sessions
+    return unit.sessions.map(s => s.status === 'scheduled'
+      ? { ...s, status: 'walleted', wallet_credit_status: 'active' as const } : s)
+  }), [serverSessions, confirmedWalletIds])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -269,7 +277,8 @@ export function ScheduleCalendarClient({
               clearPending(key)
               setUncertainWalletIds(prev => ({ ...prev, [pending.sessionId]: false }))
               if (walletUnitRef.current?.representative.id === pending.sessionId) { setWalletUnit(null); setWalletError(null) }
-              toast.success('เก็บเข้ากระเป๋าแล้ว')
+              confirmedWalletIdsRef.current.add(pending.sessionId)
+              setConfirmedWalletIds(prev => ({ ...prev, [pending.sessionId]: true }))
               router.refresh()
               break
             }
@@ -390,6 +399,7 @@ export function ScheduleCalendarClient({
   const storeInWallet = async () => {
     if (!walletUnit || walletRequestInFlight.current) return
     const sessionId = walletUnit.representative.id
+    if (walletUnit.sessions.some(s => confirmedWalletIdsRef.current.has(s.id))) return
     if (!uncertainWalletIds[sessionId] && !canStoreUnitInWallet(walletUnit)) return
     walletRequestInFlight.current = true
     setWalletLoadingId(sessionId)
@@ -410,7 +420,8 @@ export function ScheduleCalendarClient({
       }
       setUncertainWalletIds(prev => ({ ...prev, [sessionId]: false }))
       setWalletUnit(null)
-      toast.success('เก็บเข้ากระเป๋าแล้ว')
+      confirmedWalletIdsRef.current.add(sessionId)
+      setConfirmedWalletIds(prev => ({ ...prev, [sessionId]: true }))
       router.refresh()
     } catch {
       setUncertainWalletIds(prev => ({ ...prev, [sessionId]: true }))
@@ -743,6 +754,12 @@ export function ScheduleCalendarClient({
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                      {unit.sessions.some(s => confirmedWalletIds[s.id]) && (
+                        <p role="status" className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800">
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          {unit.isFamilyPrivate ? 'เก็บทั้งครอบครัวเข้ากระเป๋าแล้ว' : 'เก็บเข้ากระเป๋าแล้ว'}
+                        </p>
+                      )}
                       {unit.isFamilyPrivate && !wholeUnitEligible && !wholeUnitStored && (
                         <span className="mr-auto inline-flex items-center gap-1 text-xs text-amber-700">
                           <AlertTriangle className="h-3.5 w-3.5" />
@@ -755,6 +772,7 @@ export function ScheduleCalendarClient({
                           size="sm"
                           variant="outline"
                           className="border-violet-200 text-violet-700 hover:bg-violet-50"
+                          disabled={walletLoadingId !== null}
                           onClick={() => {
                             setWalletError(null)
                             setWalletUnit(unit)

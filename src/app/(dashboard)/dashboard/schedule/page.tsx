@@ -1,11 +1,6 @@
 import { redirect } from 'next/navigation'
 import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
-import Link from 'next/link'
-import { AlertTriangle, Clock, Upload } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { getServiceRoleClient } from '@/lib/auth/admin'
-import { loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import { createClient } from '@/lib/supabase/server'
 import { ScheduleCalendarClient } from '@/components/dashboard/schedule-calendar-client'
 import {
@@ -128,21 +123,11 @@ interface SlotSessionRow {
   schedule_slot_id: string | null
 }
 
-interface IncompleteBookingRow {
-  id: string
-  status: string
-  total_price: number | null
-  total_sessions: number | null
-  created_at: string
-}
 
 interface ActiveLevelRow extends ScheduleLevelDefinition {
   is_active: boolean
 }
 
-function formatMoney(amount: number) {
-  return `฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`
-}
 
 export default async function SchedulePage() {
   const renderedAt = new Date()
@@ -166,16 +151,9 @@ export default async function SchedulePage() {
   if (!user) redirect('/auth/login')
 
   const [
-    { data: incompleteBookingsData },
     { data: allSessions },
     { data: activeLevelsData },
   ] = await Promise.all([
-    supabase
-      .from('bookings')
-      .select('id, status, total_price, total_sessions, created_at')
-      .eq('user_id', user.id)
-      .in('status', ['pending_payment', 'paid'])
-      .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: IncompleteBookingRow[] | null }>,
     supabase
       .from('booking_sessions')
       .select('id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, status, is_makeup, child_id, rescheduled_from_id, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name, nickname)')
@@ -189,14 +167,6 @@ export default async function SchedulePage() {
       .eq('is_active', true)
       .order('id') as unknown as PromiseLike<{ data: ActiveLevelRow[] | null }>,
   ])
-
-  const lifecycle = await loadBookingPaymentLifecycle(adminSupabase, (incompleteBookingsData || []).map((booking) => booking.id))
-  const incompleteBookings = (incompleteBookingsData || []).filter((booking) => !lifecycle.get(booking.id)?.due && ['pending_payment', 'paid'].includes(lifecycle.get(booking.id)?.status || ''))
-    .map((booking) => ({ ...booking, status: lifecycle.get(booking.id)?.status || booking.status }))
-  const waitingSlipCount = incompleteBookings.filter((booking) => booking.status === 'pending_payment').length
-  const waitingVerifyCount = incompleteBookings.filter((booking) => booking.status === 'paid').length
-  const incompleteSessions = incompleteBookings.reduce((sum, booking) => sum + Number(booking.total_sessions || 0), 0)
-  const incompleteAmount = incompleteBookings.reduce((sum, booking) => sum + Number(booking.total_price || 0), 0)
 
   const sessionsArr = allSessions || []
   const sessionIds = sessionsArr.map((session) => session.id)
@@ -520,47 +490,6 @@ export default async function SchedulePage() {
         <h1 className="text-2xl font-bold text-[#153c85]">ตารางเรียน</h1>
         <p className="mt-1 text-sm text-gray-500">ดูตารางเรียนรายเดือน พร้อมรอบปกติ รอบชดเชย และประวัติการเปลี่ยนวัน</p>
       </div>
-
-      {incompleteBookings.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50/70">
-          <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-amber-900">มีรายการจองที่ยังไม่สมบูรณ์</p>
-                <p className="mt-1 text-sm text-amber-800">
-                  รายการเหล่านี้ยังไม่เข้า flow สอน และจะไม่แสดงในตารางเรียนจริงจนกว่าระบบจะยืนยันการชำระเงิน
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-amber-800">
-                  {waitingSlipCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-white px-2 py-1">
-                      <Upload className="h-3.5 w-3.5" />
-                      รอแนบสลิป {waitingSlipCount} รายการ
-                    </span>
-                  )}
-                  {waitingVerifyCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-white px-2 py-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      รอตรวจสอบ {waitingVerifyCount} รายการ
-                    </span>
-                  )}
-                  <span className="inline-flex items-center rounded-md border border-amber-200 bg-white px-2 py-1">
-                    รวม {incompleteSessions} ครั้ง · {formatMoney(incompleteAmount)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <Button asChild className="bg-[#2748bf] hover:bg-[#153c85]">
-              <Link href="/dashboard/history">
-                <Upload className="mr-2 h-4 w-4" />
-                ไปแนบสลิป/ดูประวัติ
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       <ScheduleCalendarClient
         currentUserId={user.id}

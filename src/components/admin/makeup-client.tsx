@@ -26,6 +26,7 @@ import type { MakeupHistorySubject } from '@/lib/admin-makeup-history'
 import { ReviewCloseDialog, ReviewCloseImpact, type ReviewCloseRequest } from '@/components/admin/review-close-dialog'
 import { MakeupOperationRecovery } from '@/components/admin/makeup-operation-recovery'
 import { adminMakeupStorePolicy } from '@/lib/admin-makeup-store-policy'
+import {adminMakeupCurrentMonth,adminMakeupShiftMonth} from '@/lib/admin-makeup-month'
 import type { MakeupOperationResolution } from '@/lib/admin-makeup-operation-client'
 import {
   formatThaiDateTimeWithWeekday,
@@ -292,12 +293,14 @@ function toDateInput(value: Date) {
   return `${y}-${m}-${d}`
 }
 
-function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], scheduleTemplates: ScheduleTemplateOption[], now = new Date()): AvailableDay[] {
+function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], scheduleTemplates: ScheduleTemplateOption[], now = new Date(), targetMonth=adminMakeupCurrentMonth(now)): AvailableDay[] {
   if (!month) return []
-  const range = getMonthRange(month.sourceSession.date)
   const courseType = normalizeCourseType(month.sourceSession.course_type)
 
-  return getDaysInRange(range.nextMonthStart, range.nextMonthEnd)
+  const next=adminMakeupShiftMonth(targetMonth,1)
+  if(!next)return []
+  const last=new Date(next+'-01T12:00:00');last.setDate(0)
+  return getDaysInRange(targetMonth+'-01',toDateInput(last))
     .map((date) => {
       const dayOfWeek = date.getDay()
       const slotsByBranch = branches
@@ -408,6 +411,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
+  const [targetMonth,setTargetMonth]=useState(()=>adminMakeupCurrentMonth())
   const [makeupReason, setMakeupReason] = useState(''), [makeupReasonNote, setMakeupReasonNote] = useState('')
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
   const options=useMakeupOptions(dialogOpen&&Boolean(selectedMonth)),scheduleTemplates=options.templates
@@ -876,7 +880,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     }
   }, [isMonthPending, selectedSourceMonth])
 
-  const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates, legacyNow), [branches, scheduleTemplates, selectedMonth, legacyNow])
+  const calendarMonth=targetMonth<adminMakeupCurrentMonth(legacyNow)?adminMakeupCurrentMonth(legacyNow):targetMonth
+  const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates, legacyNow,calendarMonth), [branches, scheduleTemplates, selectedMonth, legacyNow,calendarMonth])
   const legacySlotValid = Boolean(pickedSlot && availableDays.some(day => day.dateInput === pickedSlot.date && day.slotsByBranch.some(item => item.branch.id === pickedSlot.branchId && item.slots.some(slot => slot.start.slice(0,5) === pickedSlot.start.slice(0,5) && slot.end.slice(0,5) === pickedSlot.end.slice(0,5)))))
   const openMakeupDialog = (month: MonthGroup) => {
     if (createInFlightRef.current || createBlockedKeysRef.current.has(month.key) || !month.canCreate) return
@@ -884,7 +889,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     setError(null)
     setMakeupReason(''); setMakeupReasonNote('')
     setSelectedMonth(month)
-    setSelectedDate(days[0]?.dateInput || '')
+    setTargetMonth(adminMakeupCurrentMonth());setSelectedDate(days[0]?.dateInput || '')
     setPickedSlot(null)
     setDialogOpen(true)
   }
@@ -2106,7 +2111,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             ))}
                           </div>
                           <p className="mt-2 text-xs text-gray-500">
-                            ชดเชยได้ใน {month.nextMonthLabel} • หมดเขต {month.deadlineLabel}
+                            Admin เลือกเดือนปัจจุบันหรือเดือนอนาคตได้ • ต้องยืนยันใช้ต้นทางภายใน {month.deadlineLabel}
                           </p>
                           {month.sessions.flatMap(source => makeupDestinationsBySource.get(source.id) || []).map(destination => (
                             <div key={destination.id} data-makeup-destination={destination.id} className="mt-2 rounded-md bg-emerald-50 p-2 text-sm text-emerald-900">
@@ -2836,12 +2841,13 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
                 <p className="font-semibold text-gray-950">{selectedMonth.sourceSession.learner_name}</p>
                 <p className="mt-1 text-xs text-gray-500">
-                  ชดเชยแทน {selectedMonth.sessions.length} ครั้งในเดือน {selectedMonth.monthLabel} • เลือกได้เฉพาะ {selectedMonth.nextMonthLabel}
+                  ชดเชยแทน {selectedMonth.sessions.length} ครั้งในเดือน {selectedMonth.monthLabel} • Admin เลือกเดือนปัจจุบันหรือเดือนอนาคตได้
                 </p>
               </div>
 
               {options.ready ? <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <MakeupCalendarPicker month={getMonthRange(selectedMonth.sourceSession.date).nextMonthStart.slice(0, 7)} days={availableDays} selectedDate={selectedDate} selectedSlot={pickedSlot} disabled={loading}
+                <MakeupCalendarPicker month={calendarMonth} days={availableDays} selectedDate={selectedDate} selectedSlot={pickedSlot} disabled={loading}
+                  onMonthChange={value=>{if(!loading&&!createInFlightRef.current&&!createResults[selectedMonth.key]){setTargetMonth(value);setSelectedDate('');setPickedSlot(null)}}}
                   onDateChange={date => { if (!createInFlightRef.current) { setSelectedDate(date); setPickedSlot(null) } }}
                   onSlotChange={slot => { if (!createInFlightRef.current) setPickedSlot(slot) }} />
               </div> : null}

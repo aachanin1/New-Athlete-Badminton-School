@@ -3,6 +3,7 @@ import { getServiceRoleClient, requireAdminPageAccess } from '@/lib/auth/admin'
 import { createProgressiveSlipSignedUrl } from '@/lib/progressive-payment-integration'
 import { signAdminPaymentSlips } from '@/lib/admin-payment-slip-signing'
 import { getBangkokDateKey } from '@/lib/date-format'
+import {slipResultMessage} from '@/lib/booking-slip-result'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
 import { bookingPaymentLifecycleMessage, loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import { loadTask10Policy } from '@/lib/task10-policy'
@@ -103,6 +104,7 @@ interface ProgressiveCourseRow {
 interface ProgressiveMemberRow {
   payment_batch_id: string
   booking_id: string
+  batch?:{slipok_response_code:string|null;rejection_reason:string|null}|null
   bookings?: {
     learner_type: string | null
     total_sessions: number | null
@@ -364,6 +366,7 @@ export default async function PaymentsPage({ searchParams }: {
     readChunkedRangePages<ProgressiveMemberRow>('progressive batch members', progressiveBatchIds,
       (chunk, start, end) => service.from('progressive_payment_batch_bookings').select(`
           payment_batch_id, booking_id,
+          batch:progressive_payment_batches(slipok_response_code,rejection_reason),
           bookings(learner_type, total_sessions, branches(name), children(full_name, nickname))
         `).in('payment_batch_id', chunk).order('payment_batch_id').order('booking_id')
         .range(start, end) as unknown as Promise<QueryRowsResult<ProgressiveMemberRow>>),
@@ -483,7 +486,9 @@ export default async function PaymentsPage({ searchParams }: {
       status: mappedStatus,
       verified_by: null,
       verified_at: row.decided_at,
-      notes: `Progressive Batch · ${row.booking_count} bookings · ${row.status}`,
+      notes: row.status==='rejected'?members[0]?.batch?.rejection_reason||'กรุณาแก้สลิป'
+        :row.status==='under_review'?slipResultMessage(members[0]?.batch?.slipok_response_code||'UNAVAILABLE')
+        :row.status==='approved'?(members[0]?.batch?.slipok_response_code==='TEST_APPROVED'?'ชำระเงินสำเร็จ (TEST MODE)':'ยืนยันการชำระเงินแล้ว'):'กำลังตรวจสลิป',
       created_at: row.submitted_at,
       user_name: profile?.full_name || 'ไม่ทราบ',
       user_email: profile?.email || '',

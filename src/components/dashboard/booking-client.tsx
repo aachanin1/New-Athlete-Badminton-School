@@ -1,7 +1,15 @@
-﻿'use client'
+'use client'
+import { BookingFlowSteps, BookingCalendarHeading, BookingLearnerTabs, BookingReviewCard } from './booking-flow-ui'
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { checkoutRequest, type BookingPackage } from '@/lib/booking-checkout'
+import { bangkokMonthKey, packageExpiryAt, packageRoundWithinExpiry, packageValidityDescription, PACKAGE_DATE_ERROR, PACKAGE_DURATION_RULE } from '@/lib/booking-package-validity'
+import { BookingCalendar } from '@/components/dashboard/booking-calendar'
+import type { PreviousBooking } from '@/lib/booking-previous'
+import { BookingChoice } from '@/components/dashboard/booking-choice'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { Child, Branch, CourseTypeName } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,7 +31,7 @@ import {
 import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption, type TimeSlot } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, formatPricingTierRange, type CourseCategory, type PricingTierInput, type SelectedPricingTierEvidence } from '@/lib/pricing'
-import { legacyTiersFromPolicy, type BookingPricingPolicyQuote } from '@/lib/booking-pricing-policy'
+import { type BookingPricingPolicyQuote } from '@/lib/booking-pricing-policy'
 import { task10RpcError } from '@/lib/task10-policy'
 import { formatLearnerDisplayName, joinLearnerDisplayNames } from '@/lib/learner-display-name'
 import { fmtTime } from '@/lib/utils'
@@ -95,6 +103,9 @@ interface EditBookingSession {
 }
 
 interface EditBookingData {
+  checkout_deadline?: string | null
+  package_snapshot?: BookingPackage | null
+  package_participants?: Array<string | null> | null
   id: string
   learner_type: string
   child_id: string | null
@@ -113,6 +124,10 @@ interface EditBookingData {
 }
 
 interface BookingClientProps {
+  todayBangkok: string
+  serverNow?: string
+  packages: BookingPackage[]
+  previousBookings?: PreviousBooking[]
   userId: string
   userName: string
   learnerChildren: Child[]
@@ -132,6 +147,7 @@ interface BookingClientProps {
 type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
 
 interface BookingDraft {
+  packageId?: string
   version: 2
   step: Step
   courseType: CourseTypeName | null
@@ -201,11 +217,9 @@ const BOOKING_DRAFT_VERSION = 2
 const STEP_ORDER: Step[] = ['type', 'learner', 'branch', 'calendar', 'summary']
 
 const STEPS: { key: Step; label: string }[] = [
-  { key: 'type', label: 'ประเภท' },
-  { key: 'learner', label: 'ผู้เรียน' },
-  { key: 'branch', label: 'สาขา' },
-  { key: 'calendar', label: 'เลือกวันเรียน' },
-  { key: 'summary', label: 'สรุป' },
+  { key: 'type', label: 'เลือกคอร์ส' },
+  { key: 'calendar', label: 'ผู้เรียนและวันเรียน' },
+  { key: 'summary', label: 'สรุปและชำระเงิน' },
 ]
 
 const SETTLED_BOOKING_STATUSES = ['paid', 'verified']
@@ -381,7 +395,7 @@ function getSafeStep(step: Step, draft: Omit<BookingDraft, 'version' | 'updatedA
   if (targetIndex <= STEP_ORDER.indexOf('calendar')) return step
 
   const selectedSessionCount = Object.values(draft.sessionsMap).reduce((sum, sessions) => sum + sessions.length, 0)
-  return selectedSessionCount > 0 ? step : 'calendar'
+  return selectedSessionCount > 0 || draft.packageId ? step : 'calendar'
 }
 
 function sanitizeBookingDraft(
@@ -432,6 +446,7 @@ function sanitizeBookingDraft(
     : 'self'
 
   const draft = {
+    packageId: typeof value.packageId === 'string' ? value.packageId : '',
     step: value.step,
     courseType,
     learnerType: value.learnerType,
@@ -448,11 +463,25 @@ function sanitizeBookingDraft(
   return { ...draft, step: getSafeStep(value.step, draft) }
 }
 
-export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError, initialKidsPricingErrorCode, initialKidsPricingMonth }: BookingClientProps) {
+export function BookingClient({ todayBangkok, serverNow, userId, userName, learnerChildren: initialLearnerChildren, packages, previousBookings = [], branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError, initialKidsPricingErrorCode, initialKidsPricingMonth }: BookingClientProps) {
   const router = useRouter()
+  const [learnerChildren, setLearnerChildren] = useState(initialLearnerChildren)
+  const [packageId, setPackageId] = useState(editBooking ? packages.find(p => p.quantity === editBooking.total_sessions && p.course === editBooking.course_types?.name)?.id || '' : '')
+  const [childName, setChildName] = useState('')
+  const [childNickname, setChildNickname] = useState('')
+  const [addingChild, setAddingChild] = useState(false)
+  const [showChildForm, setShowChildForm] = useState(false)
+  const childRequest = useRef('')
+  const [childUnknown,setChildUnknown]=useState(false)
+  const restoredChildRequest=useRef(false)
+  const [uncertainCreate, setUncertainCreate] = useState(false)
+  const uncertainRequest = useRef('')
+  const restoredUncertain = useRef('')
+  const draftSaveTimer = useRef<number | null>(null)
   const [policyRefreshing, refreshPolicy] = useTransition()
   const [previewFailure, setPreviewFailure] = useState<{ fingerprint: string; code: string; message: string } | null>(null)
   const isEditMode = !!editBooking
+  const uncertainStorageKey='nabs:booking-uncertain:'+userId+(editBooking?':edit:'+editBooking.id:'')
   const editSelectedBranchIds = useMemo(
     () => getEditSelectedBranchIds(editBooking, branches),
     [branches, editBooking],
@@ -475,15 +504,27 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
   // Booking state
   const [courseType, setCourseType] = useState<CourseTypeName | null>(editCourseTypeName || null)
+  const selectedPackage = editBooking?.package_snapshot || packages.find(p => p.id === packageId && p.course === courseType)
+  const serverClockOffset = useRef(Date.parse(serverNow || todayBangkok + 'T12:00:00+07:00') - Date.now())
+  const [packageMonth, setPackageMonth] = useState(todayBangkok.slice(0, 7))
+  useEffect(() => {
+    const refreshMonth = () => setPackageMonth(bangkokMonthKey(Date.now() + serverClockOffset.current))
+    const timer = setInterval(refreshMonth, 60000)
+    document.addEventListener('visibilitychange', refreshMonth)
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refreshMonth) }
+  }, [])
+  const packageReference = packageMonth + '-01T12:00:00+07:00'
+  const packageExpiry = courseType !== 'kids_group' ? packageExpiryAt(selectedPackage, packageReference) : null
+  const packageEndMonth = packageExpiry ? bangkokMonthKey(packageExpiry) : null
   const [learnerType, setLearnerType] = useState<'self' | 'child' | null>(
     isEditMode ? (editBooking.learner_type === 'child' ? 'child' : 'self') : null
   )
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>(editBooking?.childIds || [])
-  const [privateSelfAttend, setPrivateSelfAttend] = useState(false)
+  const [privateSelfAttend, setPrivateSelfAttend] = useState(Boolean(editBooking?.package_participants?.includes(null) || editBooking?.sessions.some(s => !s.child_id)))
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(editSelectedBranchIds)
 
   // Calendar state — per-child sessions map
-  const now = new Date()
+  const now = new Date(todayBangkok+'T12:00:00+07:00')
   const [calMonth, setCalMonth] = useState(isEditMode ? (editBooking.month - 1) : initialKidsPricingMonth ? Number(initialKidsPricingMonth.slice(5, 7)) - 1 : now.getMonth())
   const [calYear, setCalYear] = useState(isEditMode ? editBooking.year : initialKidsPricingMonth ? Number(initialKidsPricingMonth.slice(0, 4)) : now.getFullYear())
   const calendarMonthDisplay = formatThaiMonthYear(getMonthDisplayDateKey(calYear, calMonth))
@@ -493,9 +534,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     if (!editBooking) return {}
     const map: Record<string, SelectedSession[]> = {}
     for (const s of editBooking.sessions) {
-      const key = s.child_id || 'self'
+      const key = editCourseTypeName === 'private' ? 'self' : s.child_id || 'self'
       const d = new Date(s.date + 'T00:00:00')
       if (!map[key]) map[key] = []
+      if (map[key].some(slot => slot.date === s.date && slot.start === s.start_time.slice(0, 5) && slot.end === s.end_time.slice(0, 5) && slot.branchId === s.branch_id)) continue
       map[key].push({
         date: s.date,
         dayOfWeek: d.getDay(),
@@ -511,7 +553,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const [sessionsMap, setSessionsMap] = useState<Record<string, SelectedSession[]>>(buildEditSessionsMap)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [activeChildTab, setActiveChildTab] = useState<string>(
-    isEditMode && editBooking.childIds.length > 0 ? editBooking.childIds[0] : 'self'
+    isEditMode && editCourseTypeName === 'kids_group' && editBooking.childIds.length > 0 ? editBooking.childIds[0] : 'self'
   )
   const [draftReady, setDraftReady] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
@@ -554,11 +596,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       isEditMode,
       editBranches: [...editSelectedBranchIds].sort(),
       courses: [...validCourseTypes].sort(),
-      children: [...validChildIds].sort(),
       branches: [...validBranchIds].sort(),
     })
-    // A policy refresh returns equivalent server arrays. Restore only when
-    // the draft or its allowed identities change, preserving in-flight UI state.
+    // Adding a child inline must preserve the just-selected child and live form.
+    // A restored draft is sanitized against the current children on first entry.
     if (restoredDraftIdentityRef.current === identity) return
     restoredDraftIdentityRef.current = identity
     setDraftReady(false)
@@ -590,7 +631,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         return
       }
 
-      setStep(restoredDraft.step)
+      setStep(['learner', 'branch'].includes(restoredDraft.step) ? 'calendar' : restoredDraft.step)
+      if (restoredDraft.packageId && packages.some(p => p.id === restoredDraft.packageId)) setPackageId(restoredDraft.packageId)
       setCourseType(restoredDraft.courseType)
       setLearnerType(restoredDraft.learnerType)
       setSelectedChildIds(restoredDraft.selectedChildIds)
@@ -608,11 +650,25 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       window.sessionStorage.removeItem(draftStorageKey)
       setDraftReady(true)
     }
-  }, [draftStorageKey, editSelectedBranchIds, isEditMode, validBranchIds, validChildIds, validCourseTypes])
+  }, [draftStorageKey, editSelectedBranchIds, isEditMode, packages, validBranchIds, validChildIds, validCourseTypes])
 
   useEffect(() => {
     if (draftReady && !clientRequestId) setClientRequestId(createClientRequestId())
   }, [clientRequestId, draftReady])
+  useEffect(() => {
+    if (!draftReady || restoredUncertain.current===uncertainStorageKey) return
+    restoredUncertain.current = uncertainStorageKey
+    uncertainRequest.current='';setUncertainCreate(false)
+    try {
+      const saved = sessionStorage.getItem(uncertainStorageKey)
+      if (saved) { uncertainRequest.current = saved; setClientRequestId(saved); setUncertainCreate(true) }
+    } catch {}
+  }, [draftReady, uncertainStorageKey])
+  useEffect(()=>{
+    if(!draftReady||restoredChildRequest.current)return
+    restoredChildRequest.current=true
+    try{const saved=JSON.parse(sessionStorage.getItem('nabs:child-pending:'+userId)||'null');if(saved){childRequest.current=saved.request;setChildName('');setChildNickname('');setChildUnknown(true);setShowChildForm(true)}}catch{}
+  },[draftReady,userId])
 
   useEffect(() => {
     if (!draftReady || typeof window === 'undefined') return
@@ -636,6 +692,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         }
 
         const draft: BookingDraft = {
+          packageId,
           version: BOOKING_DRAFT_VERSION,
           step,
           courseType,
@@ -655,6 +712,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         // sessionStorage can be unavailable in restricted browser modes.
       }
     }, 250)
+    draftSaveTimer.current = timeoutId
 
     return () => window.clearTimeout(timeoutId)
   }, [
@@ -668,6 +726,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     isEditMode,
     learnerType,
     privateSelfAttend,
+    packageId,
     selectedBranchIds,
     selectedChildIds,
     sessionsMap,
@@ -675,6 +734,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   ])
 
   const clearStoredDraft = () => {
+    if (draftSaveTimer.current !== null) clearTimeout(draftSaveTimer.current)
     if (typeof window !== 'undefined') {
       try {
         window.sessionStorage.removeItem(draftStorageKey)
@@ -698,6 +758,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
   // For non-kids bookings, use 'self' as key in sessionsMap
   const activeSessions = sessionsMap[activeChildTab] || []
+  const hasCalendarLearner = courseType === 'adult_group' || courseType === 'private' && privateSelfAttend || selectedChildIds.length > 0
 
   // Total sessions across all selected learnerChildren (for this booking batch)
   const allSelectedSessions = useMemo(() => {
@@ -749,9 +810,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     return pricing.total
   }, [pricing, courseType, kidsIncremental])
 
-  const bookingSessionCount = courseType === 'private'
-    ? (sessionsMap.self || []).length
-    : allSelectedSessions.length
+  const bookingSessionCount = isEditMode && !editBooking?.package_snapshot ? (courseType === 'private' ? (sessionsMap.self || []).length : allSelectedSessions.length) : courseType !== 'kids_group' && selectedPackage ? selectedPackage.quantity : allSelectedSessions.length
   const selectedCourseType = useMemo(
     () => courseTypes.find((courseTypeRow) => courseTypeRow.name === courseType) || null,
     [courseType, courseTypes],
@@ -798,9 +857,11 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         scheduleTemplateId: session.scheduleTemplateId || null,
       })))
       .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+    packageId,
     couponId: appliedCoupon?.id || null,
   }), [
     appliedCoupon?.id,
+    packageId,
     calMonth,
     calYear,
     courseType,
@@ -1103,15 +1164,14 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   }
 
   useEffect(() => {
-    const couponBasePrice = courseType === 'kids_group'
-      ? authoritativePreview?.grossPrice
-      : totalBatchPrice
+    const couponBasePrice = authoritativePreview?.grossPrice
+      ?? (courseType === 'kids_group' ? undefined : selectedPackage?.price ?? totalBatchPrice)
     if (couponBasePrice === 0 && appliedCoupon) {
       setAppliedCoupon(null)
       setCouponCode('')
       setCouponError(null)
     }
-  }, [appliedCoupon, authoritativePreview?.grossPrice, courseType, totalBatchPrice])
+  }, [appliedCoupon, authoritativePreview?.grossPrice, courseType, selectedPackage?.price, totalBatchPrice])
 
   // Calendar helpers
   const calendarDays = useMemo(() => {
@@ -1145,22 +1205,21 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   }
 
   const getTodayStart = () => {
-    const today = new Date()
+    const today = new Date(todayBangkok+'T00:00:00')
     today.setHours(0, 0, 0, 0)
     return today
   }
 
   const getSlotStart = (day: number, startTime: string) => {
-    const [hour, minute] = startTime.split(':').map(Number)
-    return new Date(calYear, calMonth, day, hour || 0, minute || 0, 0, 0)
+    return new Date(`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}T${startTime.slice(0,5)}:00+07:00`)
   }
 
   const isSlotBookable = (day: number, slot: TimeSlot) => {
     const date = new Date(calYear, calMonth, day)
     const today = getTodayStart()
     if (date < today) return false
-    if (date > today) return true
-    return getSlotStart(day, slot.start).getTime() > Date.now()
+    if (!packageRoundWithinExpiry(packageExpiry, getDateString(day), slot.end)) return false
+    return getSlotStart(day, slot.start).getTime() > (editBooking?.checkout_deadline ? Date.parse(editBooking.checkout_deadline) : Date.now() + 30 * 60000)
   }
 
   const getBookableSlots = (branchSlug: string, day: number) => {
@@ -1175,11 +1234,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     const date = new Date(year, month - 1, day)
     const today = getTodayStart()
     if (date < today) return false
-    if (date > today) return true
 
-    const [hour, minute] = session.start.split(':').map(Number)
-    const slotStart = new Date(year, month - 1, day, hour || 0, minute || 0, 0, 0)
-    return slotStart.getTime() > Date.now()
+    const slotStart = new Date(session.date+'T'+session.start.slice(0,5)+':00+07:00')
+    return slotStart.getTime() > (editBooking?.checkout_deadline ? Date.parse(editBooking.checkout_deadline) : Date.now() + 30 * 60000)
   }
 
   const isDateSelectable = (day: number) => {
@@ -1250,6 +1307,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     if (existing) {
       setSessionsMap((prev) => ({ ...prev, [key]: current.filter((s) => !(s.date === dateStr && s.start === slot.start && s.branchId === slotBranchId)) }))
     } else {
+      if (courseType !== 'kids_group' && selectedPackage && current.length >= selectedPackage.quantity) {
+        setError(`แพ็กเกจนี้เลือกได้ ${selectedPackage.quantity} รอบ กรุณานำรอบเดิมออกก่อนเลือกวันใหม่`)
+        return
+      }
       if (courseType === 'kids_group' && !authoritativeAvailability) {
         setError('กำลังตรวจสอบที่ว่าง กรุณารอสักครู่')
         return
@@ -1287,14 +1348,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     setSessionsMap((prev) => ({ ...prev, [key]: current.filter((_, i) => i !== index) }))
   }
 
-  const toggleChild = (childId: string) => {
-    setSelectedChildIds((prev) =>
-      prev.includes(childId) ? prev.filter((id) => id !== childId) : [...prev, childId]
-    )
-  }
-
   const goNext = async () => {
     if (kidsPolicyBlocked) return
+    if (packageExpiry && allSelectedSessions.some(s => !packageRoundWithinExpiry(packageExpiry, s.date, s.end))) { setError(PACKAGE_DATE_ERROR); return }
     const nextIndex = currentStepIndex + 1
     if (nextIndex < STEPS.length) {
       if (step === 'calendar' && STEPS[nextIndex].key === 'summary') {
@@ -1329,6 +1385,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       }
       // When entering calendar, set activeChildTab
       if (STEPS[nextIndex].key === 'calendar') {
+        if (selectedBranchIds.length === 0 && branches.length === 1) setSelectedBranchIds([branches[0].id])
         if (courseType === 'kids_group' && selectedChildIds.length > 0) {
           setActiveChildTab(selectedChildIds[0])
         } else {
@@ -1346,13 +1403,13 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const canGoNext = () => {
     if (kidsPolicyBlocked) return false
     switch (step) {
-      case 'type': return !!courseType
+      case 'type': return !!courseType && (courseType === 'kids_group' || !!selectedPackage)
       case 'learner':
         if (courseType === 'kids_group') return selectedChildIds.length > 0
         if (courseType === 'private') return privateSelfAttend || selectedChildIds.length > 0
         return !!learnerType
       case 'branch': return selectedBranchIds.length > 0
-      case 'calendar': return allSelectedSessions.length > 0
+      case 'calendar': return selectedBranchIds.length > 0 && (courseType === 'kids_group' ? selectedChildIds.length > 0 && allSelectedSessions.length > 0 : (isEditMode && !editBooking?.package_snapshot ? allSelectedSessions.length > 0 : !!selectedPackage && (selectedPackage.quantity > 1 || allSelectedSessions.length > 0) && allSelectedSessions.length <= selectedPackage.quantity) && (courseType !== 'private' || privateSelfAttend || selectedChildIds.length > 0))
       default: return false
     }
   }
@@ -1399,12 +1456,16 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         selfSessions.forEach((s) => allSessions.push({ ...s, childId: null }))
       }
 
-      if (allSessions.length === 0) {
+      if (allSessions.length === 0 && !(selectedPackage && selectedPackage.quantity > 1 && (!isEditMode || editBooking?.package_snapshot))) {
         setError('กรุณาเลือกวันเรียนอย่างน้อย 1 วัน')
         setLoading(false)
         return
       }
 
+      const liveExpiry = courseType !== 'kids_group' ? packageExpiryAt(selectedPackage, Date.now() + serverClockOffset.current) : null
+      if (allSessions.some(s => !packageRoundWithinExpiry(liveExpiry, s.date, s.end))) {
+        setError(PACKAGE_DATE_ERROR); setStep('calendar'); setLoading(false); return
+      }
       const expiredSession = allSessions.find((session) => !isSelectedSessionStillBookable(session))
       if (expiredSession) {
         setError(`รอบ ${fmtTime(expiredSession.start)}-${fmtTime(expiredSession.end)} วันที่ ${formatThaiDateWithWeekday(expiredSession.date)} เริ่มไปแล้ว กรุณาเลือกรอบเรียนใหม่`)
@@ -1413,9 +1474,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       }
 
       // For private: total_sessions = unique time slots (not per-attendee records)
-      const bookingTotalSessions = courseType === 'private'
-        ? (sessionsMap['self'] || []).length
-        : allSessions.length
+      const bookingTotalSessions = courseType === 'kids_group' || isEditMode && !editBooking?.package_snapshot ? allSessions.length : selectedPackage?.quantity || allSessions.length
 
       const previousPreview = authoritativePreview
       const refreshedPreviewPromise = fetchAuthoritativePreview(previewFingerprint, appliedCoupon)
@@ -1447,10 +1506,14 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       const submissionFinalPrice = submissionPreview.totalPrice
 
       if (isEditMode && editBooking) {
+        try { sessionStorage.setItem(uncertainStorageKey,clientRequestId) } catch {}
+        uncertainRequest.current=clientRequestId
         const response = await fetch('/api/bookings', {
+          signal: AbortSignal.timeout(15000),
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            participants: courseType === 'adult_group' ? [null] : [...(privateSelfAttend ? [null] : []), ...selectedChildIds],
             bookingId: editBooking.id,
             branchId: primaryBranchId,
             courseTypeId: courseTypeRow.id,
@@ -1475,20 +1538,28 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
         const result = await response.json()
         if (!response.ok) {
+          if(response.status>=500||result.definitive===false||result.requiresReadback){setUncertainCreate(true);setError('ยังยืนยันผลการแก้รายการไม่ได้ กรุณาตรวจผลคำขอเดิมก่อน');setLoading(false);return}
+          try {sessionStorage.removeItem(uncertainStorageKey)}catch{}
           setError(result.error || 'Update booking failed. Please try again.')
           setLoading(false)
           return
         }
 
         clearStoredDraft()
-        router.push('/dashboard/history')
+        try {sessionStorage.removeItem(uncertainStorageKey)}catch{}
+        router.push('/dashboard/booking?payment=' + encodeURIComponent(editBooking.id))
         router.refresh()
       } else {
         // New booking mode
-        const response = await fetch('/api/bookings', {
+        try { sessionStorage.setItem(uncertainStorageKey, clientRequestId) } catch {}
+        uncertainRequest.current = clientRequestId
+        const response = await fetch('/api/booking-checkout', {
+          signal: AbortSignal.timeout(15000),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: JSON.stringify({ action: 'create', requestId: clientRequestId, input: {
+            packageId: selectedPackage?.id, packageRevision: selectedPackage?.revision,
+            participants: courseType === 'adult_group' ? [null] : [...(privateSelfAttend ? [null] : []), ...selectedChildIds],
             learnerType: isKids ? 'child' : (learnerType || 'self'),
             childId: singleChildId,
             branchId: primaryBranchId,
@@ -1515,45 +1586,46 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             expectedLegacyBaselineSessions: submissionPreview.legacyBaselineSessions,
             expectedLegacyBaselineFingerprint: submissionPreview.legacyBaselineFingerprint,
             expectedPolicyFingerprint: submissionPreview.policy?.fingerprint || null,
-          }),
+          } }),
         })
 
         const result = await response.json()
         if (!response.ok) {
+          if(response.status>=500||result.definitive===false||result.requiresReadback){setUncertainCreate(true);setError('ยังยืนยันผลการจองไม่ได้ กรุณาตรวจผลคำขอเดิมก่อน');setLoading(false);return}
+          try { sessionStorage.removeItem(uncertainStorageKey) } catch {}
           setError(result.error || 'สร้างการจองไม่สำเร็จ กรุณาลองใหม่')
           setLoading(false)
           return
         }
 
         clearStoredDraft()
-        router.push('/dashboard/history')
+        try { sessionStorage.removeItem(uncertainStorageKey) } catch {}
+        router.push('/dashboard/booking?payment=' + encodeURIComponent(result.bookingId))
         router.refresh()
       }
     } catch (submitError) {
+      setUncertainCreate(true)
       setError(isAbortError(submitError)
-        ? 'ข้อมูลการจองเปลี่ยนระหว่างตรวจสอบ กรุณาลองใหม่อีกครั้ง'
-        : 'เกิดข้อผิดพลาด กรุณาลองใหม่')
+        ? 'การเชื่อมต่อขาดระหว่างยืนยัน กรุณาตรวจผลคำขอเดิมก่อน'
+        : 'ยังยืนยันผลการจองไม่ได้ กรุณาตรวจผลคำขอเดิมก่อน')
       setLoading(false)
     }
+  }
+
+  const acceptInlineChild=(child:Child)=>{
+    setLearnerChildren(old=>old.some(c=>c.id===child.id)?old:[...old,child])
+    setSelectedChildIds(old=>[...new Set([...old,child.id])]);setActiveChildTab(courseType==='kids_group'?child.id:'self')
+    childRequest.current='';setChildName('');setChildNickname('');setChildUnknown(false);setShowChildForm(false)
+    try{sessionStorage.removeItem('nabs:child-pending:'+userId)}catch{}
   }
 
   return (
     <div>
       {/* Progress Steps */}
-      <div className="flex items-center gap-1 mb-8 overflow-x-auto pb-2">
-        {STEPS.map((s, i) => (
-          <div key={s.key} className="flex items-center">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${i <= currentStepIndex ? 'bg-[#2748bf] text-white' : 'bg-gray-100 text-gray-400'}`}>
-              <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">{i < currentStepIndex ? '✓' : i + 1}</span>
-              {s.label}
-            </div>
-            {i < STEPS.length - 1 && <div className={`w-6 h-0.5 mx-1 ${i < currentStepIndex ? 'bg-[#2748bf]' : 'bg-gray-200'}`} />}
-          </div>
-        ))}
-      </div>
+      <BookingFlowSteps step={currentStepIndex} />
 
       <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-        ระบบจะเก็บแบบร่างไว้ชั่วคราวในเบราว์เซอร์นี้ เพื่อช่วยกู้คืนเมื่อรีเฟรชหรือกลับมาที่หน้านี้
+        กลับมาจองต่อในเครื่องนี้ได้ ข้อมูลที่เลือกจะเก็บไว้ชั่วคราว
       </div>
 
       {draftRestored && (
@@ -1590,10 +1662,19 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       {/* Step 1: Course Type */}
       {step === 'type' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={"grid grid-cols-1 gap-4 rounded-xl md:grid-cols-3 " + (!courseType ? "border border-red-500 p-2" : "")}>
             {COURSE_TYPES.map((ct) => (
-              <Card key={ct.value} className={`cursor-pointer transition-all hover:shadow-md ${courseType === ct.value ? 'border-2 border-[#2748bf] shadow-md' : 'border hover:border-[#2748bf]/30'}`}
-                onClick={() => { setCourseType(ct.value); setLearnerType(ct.value === 'kids_group' ? 'child' : 'self'); setSelectedChildIds([]); setPrivateSelfAttend(false); setSessionsMap({}) }}>
+              <Card key={ct.value} role="button" tabIndex={0} aria-pressed={courseType === ct.value} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.currentTarget.click()}}} className={`cursor-pointer transition-all hover:shadow-md ${courseType === ct.value ? 'border-2 border-[#2748bf] shadow-md' : 'border hover:border-[#2748bf]/30'}`}
+                onClick={() => {
+                  if (courseType === ct.value) return
+                  const previous=previousBookings.find(p=>p.course===ct.value)
+                  const childIds=previous ? previous.participants.filter((id):id is string=>Boolean(id)&&learnerChildren.some(c=>c.id===id)) : ct.value==='kids_group'&&learnerChildren.length===1?[learnerChildren[0].id]:[]
+                  const branchIds=previous ? previous.branchIds.filter(id=>branches.some(b=>b.id===id)) : branches.length===1?[branches[0].id]:[]
+                  const pack=previous&&packages.find(p=>p.course===ct.value&&p.id===previous.packageId)
+                  setCourseType(ct.value);setPackageId(pack?.id||'');setLearnerType(ct.value==='kids_group'?'child':'self');setSelectedChildIds(childIds)
+                  setActiveChildTab(ct.value==='kids_group'?childIds[0]||'self':'self');setPrivateSelfAttend(ct.value==='private'&&Boolean(previous?.participants.includes(null)));setSelectedBranchIds(branchIds);setSessionsMap({});setExpandedDate(null)
+                  setNotice(previous ? 'ใช้ข้อมูลครั้งก่อนให้แล้ว เลือกวันเรียนใหม่ได้เลย · ครั้งก่อน '+previous.quantity+' '+(ct.value==='private'?'ชั่วโมง':'ครั้ง')+(branchIds.length<previous.branchIds.length||childIds.length<previous.participants.filter(Boolean).length?' · ข้อมูลบางส่วนใช้ต่อไม่ได้ กรุณาเลือกส่วนที่ยังว่างใหม่':'') : '')
+                }}>
                 <CardContent className="p-6 text-center">
                   <div className="w-14 h-14 bg-[#2748bf]/10 rounded-xl flex items-center justify-center mx-auto mb-3"><ct.icon className="h-7 w-7 text-[#2748bf]" /></div>
                   <h3 className="font-bold text-lg mb-1">{ct.label}</h3>
@@ -1604,9 +1685,20 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             ))}
           </div>
 
+          {!courseType && <p className="text-sm text-red-700">กรุณาเลือกประเภทคอร์ส</p>}
+          {courseType && courseType !== 'kids_group' && <section className={'grid gap-3 rounded-xl sm:grid-cols-3 '+(!packageId?'border border-red-500 p-2':'')} aria-label="เลือกแพ็กเกจ">
+            {packages.filter(p => p.course === courseType).map(p => <button type="button" key={p.id} data-testid={'package-' + p.id} aria-pressed={packageId === p.id}
+              className={'rounded-xl border-2 p-5 text-left ' + (packageId === p.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')}
+              onClick={() => { setPackageId(p.id); setSessionsMap({}) }}>
+              <p className="font-semibold">{p.quantity} {p.course === 'private' ? 'ชั่วโมง' : 'ครั้ง'}</p>
+              <p className="my-2 text-2xl font-bold text-[#153c85]">฿{p.price.toLocaleString()}</p>
+              <p className="text-sm text-gray-600">{packageValidityDescription(p, packageReference)}</p>
+            </button>)}
+          </section>}
+          {courseType && courseType!=='kids_group' && !packageId && <p className="text-sm text-red-700">กรุณาเลือกแพ็กเกจ</p>}
           {/* Pricing Table */}
           {courseType && (
-            <Card>
+            <Card className={courseType === 'kids_group' ? '' : 'hidden'}>
               <CardContent className="p-4">
                 <h4 className="font-bold text-[#153c85] mb-3">ตารางราคา — {COURSE_TYPES.find((c) => c.value === courseType)?.label}</h4>
                 {courseType === 'kids_group' && kidsPolicy && (
@@ -1621,9 +1713,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                           </tr>
                         </thead>
                         <tbody>
-                          {getKidsGroupTiers(kidsPolicy.catalog
-                            ? legacyTiersFromPolicy(kidsPolicy.catalog)
-                            : pricingTiers as PricingTierInput[]).map((t) => (
+                          {getKidsGroupTiers(pricingTiers as PricingTierInput[]).map((t) => (
                             <tr key={t.min} className="border-b last:border-0">
                               <td className="py-2 pr-4 font-medium">{t.label}</td>
                               <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.per_session} บาท</td>
@@ -1695,227 +1785,70 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         </div>
       )}
 
-      {/* Step 2: Learner */}
-      {step === 'learner' && (
-        <div>
-          {courseType === 'kids_group' ? (
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-[#153c85]">เลือกลูกที่จะเรียน (เลือกได้หลายคน)</h3>
-              {learnerChildren.length === 0 ? (
-                <Card><CardContent className="py-8 text-center text-gray-400">
-                  <AlertCircle className="h-10 w-10 mx-auto mb-3 opacity-50" /><p>ยังไม่มีข้อมูลลูก</p>
-                  <Button variant="outline" className="mt-3" onClick={() => router.push('/dashboard/children')}>เพิ่มข้อมูลลูก</Button>
-                </CardContent></Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {learnerChildren.map((child) => {
-                    const isSelected = selectedChildIds.includes(child.id)
-                    return (
-                      <Card key={child.id} className={`cursor-pointer transition-all ${isSelected ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
-                        onClick={() => toggleChild(child.id)}>
-                        <CardContent className="p-4 flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSelected ? 'bg-[#2748bf] text-white' : 'bg-gray-100'}`}>
-                            {isSelected ? <CheckCircle2 className="h-5 w-5" /> : <User className="h-5 w-5 text-gray-400" />}
-                          </div>
-                          <div>
-                            <p className="font-medium">{formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname })}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
-              {selectedChildIds.length > 1 && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>เลือก {selectedChildIds.length} คน ระบบจะรวมจำนวนครั้งของทุกคนและออกบิลเดียว</span>
-                </div>
-              )}
-              {existingMonthData.sessions > 0 && selectedChildIds.length > 0 && (
-                <div className="mt-2 p-3 bg-green-50 rounded-lg text-sm text-green-700 flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>จ่ายแล้ว {existingMonthData.sessions} ครั้งเดือนนี้ (฿{existingMonthData.paid.toLocaleString()}) → ระบบนับต่อให้อัตโนมัติ!</span>
-                </div>
-              )}
-            </div>
-          ) : courseType === 'private' ? (
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-[#153c85]">ใครจะเรียน Private?</h3>
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 mb-4 space-y-1">
-                <p className="font-medium">คอร์ส Private</p>
-                <p>• เลือกได้หลายคน — ทุกคนเรียนรอบเวลาเดียวกัน</p>
-                <p>• ครั้งละ 1 ชั่วโมง ตามรอบเรียนของสาขา</p>
-                <p>• ราคาอ้างอิงจากตารางราคาปัจจุบันในระบบ</p>
-              </div>
-              <p className="text-sm font-medium text-gray-600 mb-2">เลือกผู้เรียน (เลือกได้หลายคน)</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <Card className={`cursor-pointer transition-all ${privateSelfAttend ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
-                  onClick={() => setPrivateSelfAttend(!privateSelfAttend)}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${privateSelfAttend ? 'bg-[#2748bf] border-[#2748bf]' : 'border-gray-300'}`}>
-                      {privateSelfAttend && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-                    </div>
-                    <User className="h-5 w-5 text-[#2748bf]" />
-                    <div><p className="font-medium text-sm">{userName}</p><p className="text-xs text-gray-500">ตัวเอง</p></div>
-                  </CardContent>
-                </Card>
-                {learnerChildren.map((c) => {
-                  const isSelected = selectedChildIds.includes(c.id)
-                  return (
-                    <Card key={c.id} className={`cursor-pointer transition-all ${isSelected ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
-                      onClick={() => setSelectedChildIds((prev) => isSelected ? prev.filter((id) => id !== c.id) : [...prev, c.id])}>
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-[#2748bf] border-[#2748bf]' : 'border-gray-300'}`}>
-                          {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-                        </div>
-                        <Users className="h-5 w-5 text-[#2748bf]" />
-                        <div><p className="font-medium text-sm">{formatLearnerDisplayName({ fullName: c.full_name, nickname: c.nickname })}</p><p className="text-xs text-gray-500">ลูก/บุตรหลาน</p></div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-              {(privateSelfAttend || selectedChildIds.length > 0) && (
-                <p className="mt-3 text-sm text-green-600 font-medium">เลือกแล้ว {(privateSelfAttend ? 1 : 0) + selectedChildIds.length} คน — เรียนรอบเวลาเดียวกัน</p>
-              )}
-            </div>
-          ) : (
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-[#153c85]">ผู้เรียน: {userName}</h3>
-              <Card className="border-2 border-[#2748bf] bg-[#2748bf]/5">
-                <CardContent className="p-5 flex items-center gap-3"><User className="h-6 w-6 text-[#2748bf]" /><div><p className="font-medium">{userName}</p><p className="text-xs text-gray-500">ผู้ใหญ่ (กลุ่ม)</p></div></CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 3: Branch (multi-select) */}
-      {step === 'branch' && (
-        <div>
-          <h3 className="font-bold text-lg mb-4 text-[#153c85]">เลือกสาขา (เลือกได้หลายสาขา)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {branches.map((branch) => {
-              const isSel = selectedBranchIds.includes(branch.id)
-              return (
-                <Card key={branch.id} className={`cursor-pointer transition-all ${isSel ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
-                  onClick={() => {
-                    setSelectedBranchIds((prev) => prev.includes(branch.id) ? prev.filter((id) => id !== branch.id) : [...prev, branch.id])
-                    setSessionsMap({})
-                  }}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSel ? 'bg-[#2748bf] text-white' : 'bg-gray-100'}`}>
-                      {isSel ? <CheckCircle2 className="h-4 w-4" /> : <MapPin className="h-4 w-4 text-[#f57e3b]" />}
-                    </div>
-                    <div><p className="font-medium">{branch.name}</p>{branch.address && <p className="text-xs text-gray-500">{branch.address}</p>}</div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-          {selectedBranchIds.length > 1 && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>เลือก {selectedBranchIds.length} สาขา — ในปฏิทินจะแสดงรอบเรียนของทุกสาขาให้เลือก</span>
-            </div>
-          )}
-        </div>
-      )}
+      {uncertainCreate && <div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+        <p>ยังตรวจผลการจองไม่ได้ กรุณาตรวจคำขอเดิมก่อนสร้างรายการใหม่</p>
+        <Button className="mt-3" disabled={loading} onClick={async () => {
+          setLoading(true)
+          try {
+            const result = await checkoutRequest<{found:boolean;result?:{bookingId:string}}>('/api/booking-checkout?requestId=' + (uncertainRequest.current || clientRequestId) + '&operation=' + (isEditMode ? 'update&bookingId=' + editBooking.id : 'create'))
+            if (result.found && result.result) { clearStoredDraft(); sessionStorage.removeItem(uncertainStorageKey); router.push('/dashboard/booking?payment=' + result.result.bookingId) }
+            else { setUncertainCreate(false); setNotice('ยังไม่พบรายการจากคำขอเดิม สามารถยืนยันรายการเดิมได้อีกครั้ง') }
+          } catch { setError('ยังตรวจผลไม่ได้ กรุณาลองตรวจผลเดิมอีกครั้งเมื่อเชื่อมต่อได้') }
+          finally { setLoading(false) }
+        }}>ตรวจสอบผลเดิม</Button>
+      </div>}
+      {step === 'calendar' && (courseType === 'kids_group' && learnerChildren.length === 0 || showChildForm) && <form
+        className={"mb-6 space-y-3 rounded-xl border p-5 " + (courseType==='kids_group'&&!learnerChildren.length?'border-red-500 bg-red-50':'border-orange-200 bg-orange-50')}
+        onSubmit={async event => {
+          event.preventDefault(); setAddingChild(true); setError(null); childRequest.current ||= crypto.randomUUID()
+          try{sessionStorage.setItem('nabs:child-pending:'+userId,JSON.stringify({request:childRequest.current}))}catch{}
+          try {
+            const result = await checkoutRequest<{child:Child}>('/api/booking-children', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId:childRequest.current,fullName:childName,nickname:childNickname})})
+            acceptInlineChild(result.child)
+          } catch(e) { setChildUnknown(true);setError(e instanceof Error ? e.message : 'ยังบันทึกข้อมูลลูกไม่ได้') }
+          finally { setAddingChild(false) }
+        }}>
+        <h3 className="font-bold text-[#153c85]">ใครจะมาเรียน?</h3><p className="text-sm">เพิ่มข้อมูลผู้เรียนที่นี่ แล้วเลือกสาขาและวันเรียนต่อได้เลย</p>
+        <Label htmlFor="booking-child-name">ชื่อ–นามสกุลผู้เรียน</Label>
+        <Input id="booking-child-name" aria-invalid={!childName.trim() || undefined} className={!childName.trim()?'border-red-500':''} required maxLength={200} value={childName} onChange={e => setChildName(e.target.value)} disabled={addingChild||childUnknown}/>
+        <Label htmlFor="booking-child-nickname">ชื่อเล่น (ถ้ามี)</Label>
+        <Input id="booking-child-nickname" maxLength={100} value={childNickname} onChange={e => setChildNickname(e.target.value)} disabled={addingChild||childUnknown}/>
+        <Button type="submit" disabled={addingChild || childUnknown || !childName.trim()}>{addingChild ? 'กำลังบันทึก...' : 'บันทึกและเลือกวันเรียนต่อ'}</Button>
+        {childUnknown&&<div className="text-sm"><p>ยังยืนยันผลเพิ่มผู้เรียนไม่ได้ กรุณาตรวจคำขอเดิมก่อน</p><Button type="button" className="mt-2" variant="outline" disabled={addingChild} onClick={async()=>{setAddingChild(true);try{const r=await checkoutRequest<{found:boolean;result?:Child}>('/api/booking-checkout?operation=child&requestId='+childRequest.current);if(r.found&&r.result){acceptInlineChild(r.result);setError(null)}else{setChildUnknown(false);setError('ยังไม่พบข้อมูลจากคำขอเดิม สามารถบันทึกชื่อเดิมอีกครั้งได้')}}catch{setError('ยังตรวจผลไม่ได้ กรุณาลองตรวจคำขอเดิมเมื่อเชื่อมต่อได้')}finally{setAddingChild(false)}}}>ตรวจสอบการเพิ่มผู้เรียนเดิม</Button></div>}
+      </form>}
+      {step === 'calendar' && courseType !== 'adult_group' && (courseType === 'private' || learnerChildren.length > 0) && <Button variant="outline" className="mb-4" onClick={() => setShowChildForm(v => !v)}>{showChildForm ? 'ซ่อนแบบฟอร์มเพิ่มผู้เรียน' : 'เพิ่มผู้เรียนอีกคน'}</Button>}
+      {step === 'calendar' && (courseType !== 'kids_group' || learnerChildren.length > 0) && <div className="grid gap-3 md:grid-cols-2">
+        {courseType === 'adult_group' ? <div className="rounded-xl border bg-white p-3"><p className="text-xs text-gray-500">ผู้เรียน</p><p className="font-semibold text-[#153c85]">{userName} · ตัวเอง</p></div> : <BookingChoice title="ผู้เรียน" options={[...(courseType === 'private' ? [{id:'self',label:userName,description:'ตัวเอง · Private เรียนรอบเดียวกันทุกคน'}] : []),...learnerChildren.map(c=>({id:c.id,label:formatLearnerDisplayName({fullName:c.full_name,nickname:c.nickname})}))]} selected={[...(courseType === 'private' && privateSelfAttend ? ['self'] : []),...selectedChildIds]} removalCount={ids=>courseType === 'kids_group' ? selectedChildIds.filter(id=>!ids.includes(id)).reduce((n,id)=>n+(sessionsMap[id]||[]).length,0) : 0} onApply={ids=>{const childIds=ids.filter(id=>id!=='self');setSelectedChildIds(childIds);if(courseType==='private')setPrivateSelfAttend(ids.includes('self'));if(courseType==='kids_group'){setSessionsMap(prev=>Object.fromEntries(Object.entries(prev).filter(([id])=>childIds.includes(id))));setActiveChildTab(childIds.includes(activeChildTab)?activeChildTab:childIds[0]||'self')}setExpandedDate(null)}} />}
+        {(courseType === 'adult_group' || selectedChildIds.length > 0 || privateSelfAttend) && <BookingChoice title="สาขา" options={branches.map(b=>({id:b.id,label:b.name,description:b.address||undefined}))} selected={selectedBranchIds} removalCount={ids=>Object.values(sessionsMap).flat().filter(s=>!ids.includes(s.branchId)).length} onApply={ids=>{setSelectedBranchIds(ids);setSessionsMap(prev=>Object.fromEntries(Object.entries(prev).map(([id,rounds])=>[id,rounds.filter(s=>ids.includes(s.branchId))])));setExpandedDate(null)}} />}
+      </div>}
 
       {/* Step 4: Calendar — เลือกวันเรียน */}
-      {step === 'calendar' && selectedBranches.length > 0 && courseType && (
+      {step === 'calendar' && hasCalendarLearner && selectedPackage && (!isEditMode || editBooking?.package_snapshot) && <section className="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">
+        <p className="font-semibold">ซื้อ {selectedPackage.quantity} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'} · เลือกแล้ว {(sessionsMap.self || []).length} · คงเหลือ {selectedPackage.quantity - (sessionsMap.self || []).length}</p>
+        <p className="mt-2" data-testid="booking-package-expiry">{packageValidityDescription(selectedPackage, packageReference)}</p>
+        {selectedPackage.quantity > 1 && <p className="mt-1 text-xs">{PACKAGE_DURATION_RULE}</p>}
+        {selectedPackage.quantity > 1 && <Button className="mt-3" variant="outline" disabled={!selectedBranchIds.length || courseType !== 'adult_group' && !privateSelfAttend && !selectedChildIds.length} onClick={() => { setSessionsMap({}); setNotice('ซื้อแพ็กเกจเต็มจำนวน และเก็บสิทธิไว้เลือกวันหลังยืนยันชำระแล้ว');setStep('summary') }}>ซื้อแพ็กเกจแล้วเลือกวันภายหลัง</Button>}
+      </section>}
+      {step === 'calendar' && hasCalendarLearner && selectedBranches.length > 0 && courseType && (
         <div className="space-y-4">
-          {/* Month Selector */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="font-bold text-lg text-[#153c85]">เลือกวันเรียน — {selectedBranches.map((b) => b.name).join(', ')}</h3>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => {
-                if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) } else setCalMonth(calMonth - 1)
-                setSessionsMap({}); setExpandedDate(null)
-              }} disabled={calMonth === now.getMonth() && calYear === now.getFullYear()}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium w-36 text-center">{calendarMonthDisplay}</span>
-              <Button variant="outline" size="sm" onClick={() => {
-                if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1)
-                setSessionsMap({}); setExpandedDate(null)
-              }}>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <BookingCalendarHeading title={selectedBranches.map(b => b.name).join(', ')} month={calendarMonthDisplay}
+            previousDisabled={calMonth === now.getMonth() && calYear === now.getFullYear()}
+            nextDisabled={Boolean(packageEndMonth && getDateString(1).slice(0, 7) >= packageEndMonth)}
+            onPrevious={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) } else setCalMonth(calMonth - 1); setSessionsMap({}); setExpandedDate(null) }}
+            onNext={() => { if (packageEndMonth && getDateString(1).slice(0, 7) >= packageEndMonth) return; if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1); setSessionsMap({}); setExpandedDate(null) }} />
+          {courseType === 'kids_group' && <BookingLearnerTabs activeId={activeChildTab} onChange={id => { setActiveChildTab(id); setExpandedDate(null) }}
+            learners={selectedChildIds.map(id => { const child = learnerChildren.find(c => c.id === id); return { id, name: child ? formatLearnerDisplayName({fullName:child.full_name,nickname:child.nickname}) : 'ไม่ระบุชื่อผู้เรียน', count:(sessionsMap[id] || []).length } })} />}
 
-          {/* Child tabs (kids_group only) */}
-          {courseType === 'kids_group' && selectedChildIds.length > 1 && (
-            <div className="flex gap-2 border-b pb-2">
-              {selectedChildIds.map((cid) => {
-                const child = learnerChildren.find((c) => c.id === cid)
-                const count = (sessionsMap[cid] || []).length
-                return (
-                  <Button key={cid} size="sm"
-                    variant={activeChildTab === cid ? 'default' : 'outline'}
-                    className={activeChildTab === cid ? 'bg-[#2748bf]' : ''}
-                    onClick={() => { setActiveChildTab(cid); setExpandedDate(null) }}>
-                    {child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ไม่ระบุชื่อผู้เรียน'} {count > 0 && `(${count})`}
-                  </Button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Active child label */}
-          {courseType === 'kids_group' && (() => {
-            const child = learnerChildren.find((c) => c.id === activeChildTab)
-            return child ? (
-              <p className="text-sm text-gray-600">กำลังเลือกวันเรียนของ: <span className="font-medium text-[#153c85]">{formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname })}</span></p>
-            ) : null
-          })()}
-
-          {/* Calendar Grid */}
-          <Card>
-            <CardContent className="p-3">
-              <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 mb-1">
-                {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d, idx) => <div key={d} className={`py-0.5 ${idx === 0 ? 'text-red-500' : ''}`}>{d}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((day, i) => {
-                  if (day === null) return <div key={`empty-${i}`} />
-                  const selectable = isDateSelectable(day)
-                  const selected = isDateSelected(day)
-                  const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                  const isExpanded = expandedDate === dateStr
-                  const dateSessions = getDateSessions(day)
-                  const existingForDate = getExistingSessionsForDate(day)
-                  const hasExisting = existingForDate.length > 0
-
-                  return (
-                    <div key={day} className="relative">
-                      <button onClick={() => handleDayClick(day)} disabled={!selectable}
-                        data-testid={`booking-date-${dateStr}`}
-                        className={`w-full h-10 rounded-lg text-sm font-medium transition-all relative
-                          ${!selectable ? 'text-gray-300 cursor-not-allowed' : i % 7 === 0 && !selected ? 'text-red-500 cursor-pointer hover:bg-[#2748bf]/10' : 'cursor-pointer hover:bg-[#2748bf]/10'}
-                          ${selected ? 'bg-[#2748bf] text-white hover:bg-[#2748bf]/90' : ''}
-                          ${hasExisting && !selected ? 'bg-green-50 ring-1 ring-green-300' : ''}
-                          ${isExpanded ? 'ring-2 ring-[#f57e3b]' : ''}`}>
-                        {day}
-                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                          {existingForDate.map((es, ei) => {
-                            const existingChild = es.child_id ? learnerChildren.find(c => c.id === es.child_id) : null
-                            const childName = existingChild ? formatLearnerDisplayName({ fullName: existingChild.full_name, nickname: existingChild.nickname }) : 'ตัวเอง'
-                            const dotColors = ['bg-emerald-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500']
-                            const childIdx = es.child_id ? learnerChildren.findIndex(c => c.id === es.child_id) : -1
-                            const dotColor = childIdx >= 0 ? dotColors[childIdx % dotColors.length] : 'bg-gray-500'
-                            return <span key={`ex-${ei}`} className={`w-1.5 h-1.5 ${dotColor} rounded-full`} title={`${childName} จองแล้ว`} />
-                          })}
-                          {dateSessions.map((_: SelectedSession, si: number) => <span key={si} className={`w-1 h-1 rounded-full ${selected ? 'bg-white' : 'bg-[#2748bf]'}`} />)}
-                        </span>
-                      </button>
-                    </div>
-                  )
+          <BookingCalendar invalid={allSelectedSessions.length === 0 && (courseType === 'kids_group' || selectedPackage?.quantity === 1)}
+            onDay={date => handleDayClick(Number(date.slice(8)))}
+            days={calendarDays.filter((day): day is number => day !== null).map(day => {
+              const date = getDateString(day)
+              return {date, selectable:isDateSelectable(day), selected:isDateSelected(day), expanded:expandedDate===date,
+                selectedCount:getDateSessions(day).length, existing:getExistingSessionsForDate(day).map(es => {
+                  const child=learnerChildren.find(c=>c.id===es.child_id), index=learnerChildren.findIndex(c=>c.id===es.child_id)
+                  return {label:child ? formatLearnerDisplayName({fullName:child.full_name,nickname:child.nickname}) : 'ตัวเอง', color:index<0?'bg-gray-500':['bg-emerald-500','bg-purple-500','bg-pink-500','bg-teal-500','bg-orange-500'][index%5]}
                 })}
-              </div>
-
+            })}>
               {/* Existing bookings legend */}
               {existingSessionsForCalendar.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2 items-center text-xs text-gray-500">
@@ -2013,8 +1946,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                   </div>
                 )
               })()}
-            </CardContent>
-          </Card>
+          </BookingCalendar>
 
           {/* Selected sessions list per child + combined pricing */}
           {allSelectedSessions.length > 0 && (
@@ -2092,7 +2024,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                         ช่วงราคา {formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}
                       </p>
                       {(courseType === 'adult_group' || courseType === 'private') && selectedTier.minSessions > 1 && (
-                        <p className="text-xs font-medium text-violet-700">แพ็กเกจนี้ใช้สิทธิ์ Lesson Wallet ได้ 10 เดือนนับจากวันที่อนุมัติการชำระเงิน</p>
+                        <p className="text-xs font-medium text-violet-700">{selectedPackage && packageValidityDescription(selectedPackage, packageReference)}</p>
                       )}
                       {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && authoritativePreview.existingSessions > 0 && (
                         <p className="text-xs text-green-600 font-medium">รวมทั้งเดือน {authoritativePreview.totalSessionsAfter} ครั้ง → {selectedTier.pricePerSession.toLocaleString()} บาท/ครั้ง</p>
@@ -2118,9 +2050,11 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       {/* Step 5: Summary */}
       {step === 'summary' && (
         <div>
-          <h3 className="font-bold text-lg mb-4 text-[#153c85]">สรุปการจอง</h3>
-          <Card>
-            <CardContent className="p-6 space-y-4">
+          {selectedPackage && (!isEditMode || editBooking?.package_snapshot) && <div className="mb-4 rounded-xl bg-blue-50 p-4 text-sm">
+            ซื้อ {selectedPackage.quantity} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'} · เลือกวันแล้ว {(sessionsMap.self || []).length} · คงเหลือ {selectedPackage.quantity - (sessionsMap.self || []).length}
+            <p>{packageValidityDescription(selectedPackage, packageReference)}</p>
+          </div>}
+          <BookingReviewCard>
               {pricingPreviewPending && (
                 <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-700">
                   {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{pricingWaitMessage}
@@ -2130,15 +2064,18 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 <div><p className="text-gray-500">ประเภทคอร์ส</p><p className="font-medium">{COURSE_TYPES.find((c) => c.value === courseType)?.label}</p></div>
                 <div><p className="text-gray-500">สาขา</p><p className="font-medium">{selectedBranches.map((b) => b.name).join(', ')}</p></div>
                 <div><p className="text-gray-500">ผู้เรียน</p><p className="font-medium">
-                  {courseType === 'kids_group'
-                    ? joinLearnerDisplayNames(selectedChildIds.map((id) => {
+                  {courseType === 'kids_group' || courseType === 'private'
+                    ? joinLearnerDisplayNames([
+                      ...(courseType === 'private' && privateSelfAttend ? [{ fullName: userName }] : []),
+                      ...selectedChildIds.map((id) => {
                         const child = learnerChildren.find((candidate) => candidate.id === id)
                         return { fullName: child?.full_name, nickname: child?.nickname }
-                      }))
+                      }),
+                    ])
                     : userName}
                 </p></div>
                 <div><p className="text-gray-500">เดือน</p><p className="font-medium">{calendarMonthDisplay}</p></div>
-                <div><p className="text-gray-500">จำนวนครั้ง</p><p className="font-medium">{allSelectedSessions.length} ครั้ง</p></div>
+                <div><p className="text-gray-500">จำนวนซื้อ</p><p className="font-medium">{bookingSessionCount} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'}</p></div>
                 {pricing && (
                   <div>
                     <p className="text-gray-500">ช่วงราคา</p>
@@ -2148,7 +2085,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       <div>
                         <p className="font-medium">{formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
                         {(courseType === 'adult_group' || courseType === 'private') && selectedTier.minSessions > 1 && (
-                          <p className="text-xs font-medium text-violet-700">ใช้สิทธิ์ Lesson Wallet ได้ 10 เดือนนับจากวันที่อนุมัติการชำระเงิน</p>
+                          <p className="text-xs font-medium text-violet-700">{selectedPackage && packageValidityDescription(selectedPackage, packageReference)}</p>
                         )}
                       </div>
                     )}
@@ -2193,44 +2130,6 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       <Badge key={i} variant="outline" className="text-xs">{formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}</Badge>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {progressiveKidsPreview && (
-                <div data-testid="booking-progressive-preview" className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
-                  <p className="font-medium">วิธีคิดราคาการจองครั้งนี้</p>
-                  <p>เดือนนี้มีรอบเรียนเดิม {progressiveKidsPreview.cumulativeAfterSessions - progressiveKidsPreview.newBookingSessions} ครั้ง</p>
-                  <p>ครั้งนี้เลือกเพิ่ม {progressiveKidsPreview.newBookingSessions} ครั้ง</p>
-                  <p>หลังจองจะรวมเป็น {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง</p>
-                  <p>จำนวนรวม {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง อยู่ในช่วงราคา {formatPricingTierRange(progressiveKidsPreview.selectedTier)}</p>
-                  <p>ราคาสำหรับการจองครั้งนี้ {progressiveKidsPreview.ratePerSession.toLocaleString()} บาทต่อครั้ง</p>
-                  <p className="font-semibold">
-                    ยอดชำระครั้งนี้: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท
-                  </p>
-                  <p className="text-xs">ยอดที่ชำระสำหรับรายการก่อนหน้าจะยังอยู่กับรายการเดิม และไม่ถูกหักจากการจองครั้งนี้</p>
-                </div>
-              )}
-
-              {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && selectedTier && (
-                <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
-                  <p className="font-medium">วิธีคิดราคาการจองครั้งนี้</p>
-                  <p>เดือนนี้มีรอบที่ชำระแล้ว {authoritativePreview.existingSessions} ครั้ง</p>
-                  <p>ครั้งนี้เลือกเพิ่ม {allSelectedSessions.length} ครั้ง</p>
-                  <p>หลังจองจะรวมเป็น {authoritativePreview.totalSessionsAfter} ครั้ง</p>
-                  <p>จำนวนรวม {authoritativePreview.totalSessionsAfter} ครั้ง อยู่ในช่วงราคา {formatPricingTierRange(selectedTier)}</p>
-                  <p>ยอดรวมของเดือนนี้: {authoritativePreview.totalSessionsAfter} × {selectedTier.pricePerSession.toLocaleString()} = {(authoritativePreview.totalSessionsAfter * selectedTier.pricePerSession).toLocaleString()} บาท</p>
-                  <p>หักยอดที่ชำระแล้วในเดือนนี้: {authoritativePreview.existingPaid.toLocaleString()} บาท</p>
-                  <p className="font-semibold">ยอดชำระครั้งนี้: {authoritativePreview.totalPrice.toLocaleString()} บาท</p>
-                </div>
-              )}
-
-              {authoritativePreview?.mode === 'legacy' && courseType !== 'kids_group' && selectedTier && (
-                <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
-                  <p className="font-medium">วิธีคิดราคาการจองครั้งนี้</p>
-                  <p>ครั้งนี้เลือก {allSelectedSessions.length} {selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
-                  <p>อยู่ในช่วงราคา {formatPricingTierRange(selectedTier)}</p>
-                  <p>ราคาแพ็กเกจสำหรับการจองครั้งนี้ {displayedBasePrice.toLocaleString()} บาท</p>
-                  <p>เฉลี่ย {selectedTier.pricePerSession.toLocaleString()} บาทต่อ{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
                 </div>
               )}
 
@@ -2304,19 +2203,19 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
                   <p className="font-medium">หลังจากกดยืนยัน:</p>
                   <p>• ระบบจะสร้างรายการจอง สถานะ &quot;รอชำระเงิน&quot;</p>
-                  <p>• กรุณาแนบสลิปโอนเงินในหน้าประวัติการจอง — ระบบจะตรวจสลิปอัตโนมัติ</p>
+                  <p>• หน้านี้จะแสดงบัญชีรับโอนและช่องแนบสลิป กรุณาชำระภายใน 30 นาทีหลังเริ่มชำระเงิน</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </BookingReviewCard>
         </div>
       )}
 
+      {step === 'calendar' && !canGoNext() && hasCalendarLearner && selectedBranchIds.length > 0 && !(allSelectedSessions.length === 0 && (courseType === 'kids_group' || selectedPackage?.quantity === 1)) && <p role="status" className="mt-5 text-sm font-medium text-red-700">{!hasCalendarLearner?'กรุณาเลือกผู้เรียน':!selectedBranchIds.length?'กรุณาเลือกสาขา':!allSelectedSessions.length&&(courseType==='kids_group'||selectedPackage?.quantity===1)?'กรุณาเลือกวันและรอบเรียน':'กรุณาตรวจข้อมูลวันเรียนที่เลือกก่อนดำเนินการต่อ'}</p>}
       {/* Navigation */}
       <div className="flex justify-between mt-8">
         {isEditMode && step === 'calendar' ? (
-          <Button variant="outline" onClick={() => router.push('/dashboard/history')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />กลับหน้าประวัติ
+          <Button variant="outline" onClick={() => router.push('/dashboard/booking?payment=' + editBooking!.id)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />กลับไปชำระเงิน
           </Button>
         ) : (
           <Button variant="outline" onClick={goBack} disabled={isEditMode ? step === 'calendar' : currentStepIndex === 0}>
@@ -2324,8 +2223,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           </Button>
         )}
         {step === 'summary' ? (
-          <Button data-testid="booking-confirm" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading || previewLoading || availabilityLoading || pricingPreviewPending || selectedAvailabilityIssues.length > 0}>
-            {loading || previewLoading || availabilityLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
+          <Button data-testid="booking-confirm" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={uncertainCreate || loading || previewLoading || availabilityLoading || pricingPreviewPending || selectedAvailabilityIssues.length > 0}>
+            {loading || previewLoading || availabilityLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันยอดและเริ่มชำระเงิน'}</>}
           </Button>
         ) : (
           <Button data-testid="booking-next" className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && (availabilityLoading || !authoritativeAvailability || selectedAvailabilityIssues.length > 0))))}>

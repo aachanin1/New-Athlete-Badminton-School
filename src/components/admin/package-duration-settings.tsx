@@ -1,0 +1,14 @@
+'use client'
+import {useEffect,useState} from 'react'
+import {checkoutRequest,type BookingPackage} from '@/lib/booking-checkout'
+import {PACKAGE_DURATION_RULE} from '@/lib/booking-package-validity'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
+export function PackageDurationSettings(){
+ const [packages,setPackages]=useState<BookingPackage[]>([]),[target,setTarget]=useState<BookingPackage|null>(null),[months,setMonths]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const load=async()=>{const r=await checkoutRequest<{packages:BookingPackage[]}>('/api/booking-checkout?catalog=1');setPackages(r.packages)}
+ useEffect(()=>{void load().catch(()=>setError('ยังอ่านอายุแพ็กเกจไม่ได้'))},[])
+ const save=async()=>{if(!target)return;setBusy(true);setError('');try{await checkoutRequest('/api/booking-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'duration',packageId:target.id,months:Number(months),revision:target.revision})});await load();setTarget(null)}catch(e){setError(e instanceof Error?e.message:'บันทึกไม่สำเร็จ')}finally{setBusy(false)}}
+ return <section className="mb-6 space-y-4 rounded-xl border bg-white p-5" data-testid="package-duration-settings"><h2 className="text-xl font-bold text-[#153c85]">อายุสิทธิแพ็กเกจ</h2><p className="text-sm text-gray-600">การแก้ไขมีผลกับบิลใหม่เท่านั้น {PACKAGE_DURATION_RULE} สิทธิและบิลที่สร้างแล้วรักษาเงื่อนไขเดิม</p>{error&&<p role="alert" className="text-sm text-rose-700">{error}</p>}<div className="grid gap-3 sm:grid-cols-3">{packages.filter(p=>p.quantity>1).map(p=><div key={p.id} className="rounded-lg border p-4"><p className="font-semibold">{p.course==='private'?'Private':'ผู้ใหญ่'} {p.quantity} {p.course==='private'?'ชั่วโมง':'ครั้ง'}</p><p className="my-2">อายุ {p.validity_months} เดือน</p><Button variant="outline" onClick={()=>{setTarget(p);setMonths(String(p.validity_months))}}>เปลี่ยนอายุแพ็กเกจ</Button></div>)}</div><Dialog open={Boolean(target)} onOpenChange={v=>{if(!v&&!busy)setTarget(null)}}><DialogContent><DialogHeader><DialogTitle>เปลี่ยนอายุแพ็กเกจสำหรับบิลใหม่</DialogTitle><DialogDescription>ปัจจุบัน {target?.validity_months} เดือน บิลและสิทธิที่สร้างไว้แล้วจะไม่ถูกเปลี่ยน</DialogDescription></DialogHeader><label htmlFor="package-months">อายุสิทธิ (เดือน)</label><Input id="package-months" type="number" min={1} max={120} step={1} value={months} onChange={e=>setMonths(e.target.value)} disabled={busy}/><p className="text-sm">เดือนยืนยันชำระเป็นเดือนที่ 1 และหมดอายุสิ้นเดือนที่ {months||'…'}</p><Button onClick={()=>void save()} disabled={busy||!Number.isInteger(Number(months))||Number(months)<1||Number(months)>120}>{busy?'กำลังบันทึก...':'ยืนยันให้บิลใหม่ใช้อายุ '+months+' เดือน'}</Button></DialogContent></Dialog></section>
+}

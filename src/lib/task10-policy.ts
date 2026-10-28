@@ -1,5 +1,6 @@
 // Pure contract: safe in client components. Activation is supplied by the DB,
 // never inferred from deployment/environment names or a browser clock.
+import { PACKAGE_DATE_ERROR } from '@/lib/booking-package-validity'
 export type Task10State = 'never_activated' | 'active' | 'paused'
 export type KidsPricingRegime = 'early' | 'late'
 
@@ -28,6 +29,7 @@ export class Task10Error extends Error {
 
 export function task10RpcError(code?: string): Task10Error {
   const messages: Record<string, string> = {
+      BOOKING_UX_TARGET_AFTER_EXPIRY: PACKAGE_DATE_ERROR,
       BRANCH_DATE_CLOSED: 'สาขาปิดในวันที่เลือก กรุณาเลือกวันหรือสาขาอื่น',
       LESSON_SOURCE_REASON_REQUIRED: 'กรุณาระบุเหตุผลการจัดการ',
       TASK10_BOOKING_DEADLINE: 'หมดเวลารับสลิปของบิลนี้แล้ว กรุณารีเฟรชเพื่อตรวจสอบสถานะล่าสุด',
@@ -57,7 +59,7 @@ export function task10RpcError(code?: string): Task10Error {
 
 export async function callTask10<T>(client: Task10RpcClient, name: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await client.rpc(name, args)
-  if (error) throw task10RpcError(/(?:BRANCH_DATE|LESSON_SOURCE|TASK10|PROGRESSIVE)_[A-Z_]+/.exec(error.message)?.[0])
+  if (error) throw task10RpcError(/(?:BOOKING_UX_TARGET_AFTER_EXPIRY|(?:BRANCH_DATE|LESSON_SOURCE|TASK10|PROGRESSIVE)_[A-Z_]+)/.exec(error.message)?.[0])
   if (data === null) throw new Task10Error('TASK10_UNAVAILABLE', 'ไม่สามารถอ่านข้อมูลกติกาได้', 503)
   return data as T
 }

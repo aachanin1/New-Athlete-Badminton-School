@@ -14,6 +14,7 @@ import {
 import type { CourseTypeName, LearnerType } from '@/types/database'
 import { Task10Error } from '@/lib/task10-policy'
 import { writeLegacyBooking } from '@/lib/booking-payment-lifecycle'
+import { CheckoutRpcError, checkoutRpc, checkoutError } from '@/lib/booking-checkout-server'
 
 interface BookingSessionPayload {
   date: string
@@ -35,6 +36,17 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json() as UpdateBookingPayload
+    if ('participants' in body && body.bookingId) {
+      const owned = await getServiceRoleClient().from('bookings').select('id,package_snapshot').eq('id',body.bookingId).eq('user_id',user.id).maybeSingle()
+      if (owned.error) return NextResponse.json({error:'ยังอ่านรายการไม่ได้'},{status:503})
+      const row=owned.data as unknown as {id:string;package_snapshot:unknown}|null
+      if(row?.package_snapshot){
+        try {
+          const result=await checkoutRpc('booking_ux_update_v1',{p_actor:user.id,p_request:body.clientRequestId,p_input:body})
+          return NextResponse.json(result)
+        } catch(error){const definitive=error instanceof CheckoutRpcError&&error.definitive;return NextResponse.json({error:checkoutError(error),definitive,requiresReadback:error instanceof CheckoutRpcError&&error.requiresReadback},{status:definitive?409:503})}
+      }
+    }
     const {
       bookingId,
       branchId,

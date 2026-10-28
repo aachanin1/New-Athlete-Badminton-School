@@ -123,6 +123,8 @@ export function recordProgressiveVerificationAttempt(input: {
     providerReference: string | null
     resultCode: string | null
     verifiedAmount: number | null
+    shouldVerify?:boolean
+    retryAfter?:string
   }>('record_progressive_verification_attempt_v1', {
     p_batch_id: input.batchId,
     p_attempt_key: input.attemptKey,

@@ -16,7 +16,6 @@ import {
   MessageSquareWarning,
   TrendingUp,
   UserCircle,
-  Users,
   WalletCards,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -28,10 +27,10 @@ import { useNavigationPending } from './navigation-pending'
 
 const USER_NAV = [
   { href: '/dashboard', label: 'หน้าหลัก', icon: Home },
-  { href: '/dashboard/children', label: 'จัดการข้อมูลลูก', icon: Users },
-  { href: '/dashboard/booking', label: 'จองคอร์สเรียน', icon: CalendarDays },
-  { href: '/dashboard/history', label: 'ประวัติการจอง', icon: History },
+  { href: '/dashboard/booking', label: 'จองวันเรียน', icon: CalendarDays },
+  { href: '/dashboard/payments', label: 'ชำระเงินที่ค้าง', icon: WalletCards },
   { href: '/dashboard/schedule', label: 'ตารางเรียน', icon: CalendarDays },
+  { href: '/dashboard/history', label: 'ประวัติการจอง / การชำระเงิน', icon: History },
   { href: '/dashboard/reschedule', label: 'เปลี่ยนวัน/สาขา', icon: ArrowLeftRight },
   { href: '/dashboard/lesson-wallet', label: 'กระเป๋าวันเรียน', icon: WalletCards },
   { href: '/dashboard/progress', label: 'พัฒนาการ & Ranking', icon: TrendingUp },
@@ -43,12 +42,14 @@ interface DashboardSidebarProps {
   userName?: string
   userAvatarUrl?: string | null
   notificationUnreadCount?: number
+  pendingPaymentCount?: number
 }
 
 function SidebarContent({
   userName,
   userAvatarUrl,
   notificationUnreadCount = 0,
+  pendingPaymentCount = 0,
   onNavigate,
 }: DashboardSidebarProps & {
   onNavigate?: () => void
@@ -88,7 +89,8 @@ function SidebarContent({
         {USER_NAV.map((item) => {
           const isActive = pathname === item.href
           const isPending = isPendingHref(item.href)
-          const showBadge = item.href === '/dashboard/notifications' && notificationUnreadCount > 0
+          const badgeCount = item.href === '/dashboard/notifications' ? notificationUnreadCount : item.href === '/dashboard/payments' ? pendingPaymentCount : 0
+          const showBadge = badgeCount > 0
 
           return (
             <Link
@@ -96,12 +98,14 @@ function SidebarContent({
               href={item.href}
               onClick={(event) => handlePendingNavigation(item.href, event, onNavigate)}
               aria-busy={isPending || undefined}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive
+                item.href === '/dashboard/booking' ? 'my-3 min-h-12 bg-orange-500 font-bold text-white shadow-sm hover:bg-orange-600' : isActive
                   ? 'bg-[#2748bf] text-white'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]',
                 isPending && !isActive && 'bg-[#f57e3b]/10 text-[#153c85] ring-1 ring-[#f57e3b]/30'
+                , item.href === '/dashboard/booking' && isActive && 'ring-2 ring-orange-800 ring-offset-2'
               )}
             >
               {isPending ? (
@@ -118,7 +122,7 @@ function SidebarContent({
                     isActive ? 'bg-white text-[#2748bf]' : 'bg-red-500 text-white'
                   )}
                 >
-                  {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                  {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
               )}
             </Link>
@@ -164,7 +168,7 @@ function SidebarContent({
   )
 }
 
-export function DashboardSidebar({ userName, userAvatarUrl, notificationUnreadCount = 0 }: DashboardSidebarProps) {
+export function DashboardSidebar({ userName, userAvatarUrl, notificationUnreadCount = 0, pendingPaymentCount = 0 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -185,6 +189,7 @@ export function DashboardSidebar({ userName, userAvatarUrl, notificationUnreadCo
               userName={userName}
               userAvatarUrl={userAvatarUrl}
               notificationUnreadCount={notificationUnreadCount}
+              pendingPaymentCount={pendingPaymentCount}
               onNavigate={() => setOpen(false)}
             />
           </SheetContent>
@@ -198,7 +203,7 @@ export function DashboardSidebar({ userName, userAvatarUrl, notificationUnreadCo
       </div>
 
       <aside className="hidden border-r bg-white lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <SidebarContent userName={userName} userAvatarUrl={userAvatarUrl} notificationUnreadCount={notificationUnreadCount} />
+        <SidebarContent userName={userName} userAvatarUrl={userAvatarUrl} notificationUnreadCount={notificationUnreadCount} pendingPaymentCount={pendingPaymentCount} />
       </aside>
     </>
   )

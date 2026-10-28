@@ -1,4 +1,5 @@
 import { PricingSettingsClient } from '@/components/admin/pricing-settings-client'
+import { PackageDurationSettings } from '@/components/admin/package-duration-settings'
 import { getServiceRoleClient, requireSuperAdminPageAccess } from '@/lib/auth/admin'
 import { loadKidsPricingCatalogs } from '@/lib/booking-pricing-policy'
 import type { CourseCategory } from '@/lib/pricing'
@@ -45,5 +46,5 @@ export default async function PricingSettingsPage() {
       created_at: tier.created_at,
     }))
 
-  return <PricingSettingsClient tiers={tierList} kidsCatalogs={kidsCatalogs} kidsCatalogError={kidsCatalogError} />
+  return <><PackageDurationSettings/><PricingSettingsClient tiers={tierList} kidsCatalogs={kidsCatalogs} kidsCatalogError={kidsCatalogError} /></>
 }

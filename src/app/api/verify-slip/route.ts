@@ -6,10 +6,12 @@ import {
   inspectProgressiveSlip,
   PROGRESSIVE_PAYMENT_MAX_FILE_BYTES,
 } from '@/lib/progressive-payment-integration'
-import { isSlipOKTimeout, validateSlipData, verifySlip, type SlipOKResponse } from '@/lib/slipok'
+import { verifySlip, type SlipOKResponse } from '@/lib/slipok'
+import {classifyBookingSlip} from '@/lib/booking-slip-verification'
+import {SLIP_CHECK_MARKER} from '@/lib/booking-slip-result'
 import type { PaymentStatus } from '@/types/database'
-import { Task10Error } from '@/lib/task10-policy'
-import { acceptLegacySlip, finalizeLegacySlip, readLegacySlipRequest } from '@/lib/booking-payment-lifecycle'
+import { callTask10, Task10Error } from '@/lib/task10-policy'
+import { acceptLegacySlip, readLegacySlipRequest } from '@/lib/booking-payment-lifecycle'
 
 export const runtime = 'nodejs'
 
@@ -82,14 +84,23 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const formFile = formData.get('file')
-    const file = formFile instanceof File ? formFile : null
+    let file = formFile instanceof File ? formFile : null
     const bookingIds = parseBookingIds(formData.get('bookingIds') as string | null)
     const expectedAmount = Number(formData.get('expectedAmount'))
     const receiptRequestId = typeof formData.get('requestId') === 'string' ? String(formData.get('requestId')) : randomUUID()
-    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(receiptRequestId)) {
+    const recheck=formData.get('retry')==='true'
+    const checkId=recheck?String(formData.get('checkId')||''):receiptRequestId
+    if (![receiptRequestId,checkId].every(id=>/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))) {
       return jsonError('รหัสส่งสลิปไม่ถูกต้อง', 400, { code: VERIFY_SLIP_ERROR_CODES.invalidPayload })
     }
     const adminSupabase = getServiceRoleClient()
+    const priorReceipt = await readLegacySlipRequest(adminSupabase,user.id,receiptRequestId)
+    if(recheck){
+      if(!priorReceipt?.found||!priorReceipt.storagePath)return jsonError('ไม่พบสลิปเดิมสำหรับตรวจอีกครั้ง',409)
+      const stored=await adminSupabase.storage.from('payment-slips').download(priorReceipt.storagePath)
+      if(stored.error||!stored.data)return jsonError('ยังอ่านสลิปเดิมไม่สำเร็จ กรุณาลองอีกครั้ง',503)
+      file=new File([await stored.data.arrayBuffer()],'stored-slip')
+    }
 
     if (!file || bookingIds.length === 0 || !Number.isFinite(expectedAmount) || expectedAmount <= 0) {
       return jsonError('ข้อมูลไม่ครบ กรุณาเลือกสลิปและลองส่งอีกครั้ง', 400, {
@@ -117,7 +128,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const priorReceipt = await readLegacySlipRequest(adminSupabase, user.id, receiptRequestId)
     if (priorReceipt?.found && (priorReceipt.sha256 !== inspected.sha256 || priorReceipt.totalAmount !== expectedAmount
       || JSON.stringify([...(priorReceipt.bookingIds || [])].sort()) !== JSON.stringify([...bookingIds].sort()))) {
       throw new Task10Error('TASK10_IDEMPOTENCY_CONFLICT', 'คำขอส่งสลิปนี้ไม่ตรงกับรายการที่ระบบรับไว้แล้ว')
@@ -195,15 +205,22 @@ export async function POST(request: NextRequest) {
       receiptAccepted = true
     }
 
+    const claim=await callTask10<{claimed:boolean;verified?:boolean;claimToken?:string;result?:{decision:string;notes:string}}>(adminSupabase,
+      'booking_ux_claim_legacy_slip_check_v1',{p_user:user.id,p_receipt:receiptRequestId,p_check:checkId})
+    if(!claim.claimed)return NextResponse.json({success:true,verified:Boolean(claim.verified||claim.result?.decision==='approved'),
+      checking:!claim.result&&!claim.verified,reviewMessage:claim.result?null:'กำลังตรวจสลิปเดิม กรุณารอสักครู่แล้วตรวจผลเดิม',notes:claim.result?.notes||null})
+
     const isTestMode = process.env.SLIPOK_TEST_MODE === 'true'
     let verificationStatus: PaymentStatus = 'pending'
     let verificationNotes = ''
     let slipResult: SlipOKResponse | null = null
     let slipReviewMessage = ''
     let slipWarningCode: string | null = null
+    let decision:'approved'|'rejected'|'under_review'='under_review'
 
     if (isTestMode) {
       verificationStatus = 'approved'
+      decision='approved'
       verificationNotes = `[TEST MODE] Auto-verified: ฿${expectedAmount} | ${new Date().toISOString()}`
       slipResult = {
         success: true,
@@ -220,35 +237,18 @@ export async function POST(request: NextRequest) {
         buildCanonicalSlipFileName(inspected.extension),
         expectedAmount,
       )
-      const slipTimedOut = isSlipOKTimeout(slipResult)
-
-      if (slipResult.success && slipResult.data) {
-        const validation = validateSlipData(slipResult.data, expectedAmount)
-
-        if (validation.valid) {
-          verificationStatus = 'approved'
-          verificationNotes = `SlipOK verified: ${slipResult.data.transRef} | ฿${slipResult.data.amount} | ${slipResult.data.sender?.name || '-'}`
-        } else {
-          verificationNotes = `SlipOK: ${validation.reason}`
-          slipReviewMessage = validation.reason || 'SlipOK ยังไม่สามารถยืนยันสลิปนี้ได้ แอดมินจะตรวจสอบต่อ'
-          slipWarningCode = 'SLIPOK_VALIDATION_FAILED'
-        }
-      } else if (slipTimedOut) {
-        verificationNotes = `SlipOK timeout (${slipResult?.code || 'timeout'}): admin review required`
-        slipReviewMessage = 'ระบบรับสลิปแล้ว แต่ SlipOK ใช้เวลาตรวจสอบนานเกินไป แอดมินจะตรวจสอบต่อ'
-        slipWarningCode = 'SLIPOK_TIMEOUT'
-      } else {
-        const codeLabel = slipResult?.code ? ` (${slipResult.code})` : ''
-        verificationNotes = `SlipOK error${codeLabel}: ${slipResult?.message || 'unknown'}`
-        slipReviewMessage = slipResult?.message || 'SlipOK ยังไม่สามารถยืนยันสลิปนี้ได้ แอดมินจะตรวจสอบต่อ'
-        slipWarningCode = slipResult?.code ? String(slipResult.code) : 'SLIPOK_REJECTED'
-      }
+      const outcome=classifyBookingSlip(slipResult,expectedAmount)
+      decision=outcome.decision;slipWarningCode=outcome.code;slipReviewMessage=outcome.message
+      verificationStatus=decision==='approved'?'approved':decision==='rejected'?'rejected':'pending'
     }
 
-    await finalizeLegacySlip(adminSupabase, { userId: user.id, requestId: receiptRequestId,
-      approved: verificationStatus === 'approved', notes: verificationNotes })
+    verificationNotes=SLIP_CHECK_MARKER+JSON.stringify({decision,code:isTestMode?'TEST_APPROVED':slipWarningCode,
+      message:isTestMode?'ชำระเงินสำเร็จ (โหมดทดสอบ)':slipReviewMessage,receiptRequestId,mode:isTestMode?'test':'live',
+      providerReference:slipResult?.data?.transRef?.slice(0,200)||null,verifiedAmount:slipResult?.data?.amount??null})
+    await callTask10(adminSupabase,'booking_ux_resolve_legacy_slip_check_v1',{p_user:user.id,p_receipt:receiptRequestId,
+      p_check:checkId,p_token:claim.claimToken,p_decision:decision,p_notes:verificationNotes})
 
-    const nextBookingStatus = verificationStatus === 'approved' ? 'verified' : 'paid'
+    const nextBookingStatus = decision==='approved'?'verified':decision==='rejected'?'pending_payment':'paid'
 
     return NextResponse.json({
       success: true,

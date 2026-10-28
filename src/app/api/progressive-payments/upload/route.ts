@@ -30,6 +30,10 @@ const UPLOAD_ERROR_CONTRACT = {
     status: 400,
     error: 'เนื้อไฟล์ไม่ใช่ JPEG, PNG หรือ WebP ที่ระบบรองรับ',
   },
+  PROGRESSIVE_UPLOAD_EXISTING_PAYMENT: {
+    status: 409,
+    error: 'ระบบพบสลิปหรือหลักฐานชำระเดิม กรุณาตรวจสอบผลเดิมก่อน หากโอนแล้วไม่ต้องโอนซ้ำ หากเป็นการโอนครั้งใหม่ให้เลือกรูปสลิปของครั้งนั้น',
+  },
   PROGRESSIVE_UPLOAD_ACCESS_DENIED: {
     status: 403,
     error: 'ไม่สามารถอัปโหลดสลิปให้รายการชำระเงินนี้ได้',
@@ -163,7 +167,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (error instanceof Task10Error) return NextResponse.json({ code: error.code, error: error.message, requestId, refreshRequired: true }, { status: error.status })
-    if (hasErrorCode(error, ['PROGRESSIVE_BATCH_NOT_FOUND', 'PROGRESSIVE_BATCH_NOT_SUBMITTABLE', 'PROGRESSIVE_BATCH_EXPIRED', 'PROGRESSIVE_PAYMENT_EXISTS'])) {
+    if (hasErrorCode(error, ['PROGRESSIVE_PAYMENT_EXISTS'])) return uploadError('PROGRESSIVE_UPLOAD_EXISTING_PAYMENT', requestId, logContext)
+    if (hasErrorCode(error, ['PROGRESSIVE_BATCH_NOT_FOUND', 'PROGRESSIVE_BATCH_NOT_SUBMITTABLE', 'PROGRESSIVE_BATCH_EXPIRED'])) {
       return uploadError('PROGRESSIVE_UPLOAD_BATCH_NOT_READY', requestId, logContext)
     }
     if (hasErrorCode(error, ['PROGRESSIVE_UNAUTHORIZED'])) {

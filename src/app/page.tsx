@@ -204,7 +204,7 @@ export default function LandingPage() {
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                     <p className="text-xs text-blue-700 flex items-start gap-1">
                       <Clock className="h-3 w-3 mt-0.5 shrink-0" />
-                      แพ็กเกจ 10-16 ครั้ง ใช้ได้ภายใน 10 เดือน
+                      แพ็กเกจ 10-16 ครั้ง ตรวจอายุสิทธิของแต่ละแพ็กเกจได้ในหน้าจอง
                     </p>
                   </div>
                 </div>

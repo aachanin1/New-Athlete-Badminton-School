@@ -3,6 +3,7 @@ import { BranchDateClosureReadNotice } from '@/components/branch-date-closure-re
 import { redirect } from 'next/navigation'
 
 import { LessonWalletClient } from '@/components/dashboard/lesson-wallet-client'
+import { BookingWalletClient } from '@/components/dashboard/booking-wallet-client'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { normalizeCourseTypeName } from '@/lib/schedule-template-utils'
 import { createClient } from '@/lib/supabase/server'
@@ -84,6 +85,17 @@ export default async function LessonWalletPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
+  if (process.env.BOOKING_UX_ENABLED === 'true') {
+    const admin=getServiceRoleClient(),tables=admin as unknown as {from(name:string):ReturnType<typeof admin.from>},instant=new Date(),bangkok=new Date(instant.getTime()+7*3600000)
+    const previousMonth=new Date(Date.UTC(bangkok.getUTCFullYear(),bangkok.getUTCMonth()-1,1)).toISOString().slice(0,10)
+    const [credit,unit]=await Promise.all([
+      admin.from('lesson_wallet_credits').select('course_types(name)').eq('user_id',user.id).in('status',['active','expired']).or('expires_at.gt.'+instant.toISOString()+',original_date.gte.'+previousMonth).order('expires_at').limit(1),
+      tables.from('booking_package_units').select('bookings!inner(user_id,course_types(name))').eq('bookings.user_id',user.id).eq('status','available').gt('expires_at',instant.toISOString()).order('expires_at').limit(1),
+    ])
+    const courses=[...(credit.data||[]).map(c=>(c as unknown as {course_types:{name:CourseTypeName}}).course_types?.name),...(unit.data||[]).map(c=>(c as unknown as {bookings:{course_types:{name:CourseTypeName}}}).bookings?.course_types?.name)]
+    const initialCourse:CourseTypeName=courses.includes('kids_group')?'kids_group':courses.includes('adult_group')?'adult_group':courses.includes('private')?'private':'kids_group'
+    return <BookingWalletClient userId={user.id} initialCourse={initialCourse}/>
+  }
   const { available: branchClosuresAvailable, closures: branchClosures } = await readFutureBranchDateClosureState(supabase)
 
   const adminSupabase = getServiceRoleClient()

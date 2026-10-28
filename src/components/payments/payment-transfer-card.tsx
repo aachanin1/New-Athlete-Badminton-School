@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,12 +20,12 @@ const BANK_STYLE: Record<string, string> = {
   'ธ.กรุงเทพ': 'border-blue-300 bg-blue-50 text-blue-950',
 }
 
-export function PaymentTransferCard({ account }: { account: PaymentTransferDisplayCard }) {
+export function PaymentTransferCard({ account,compact=false }: { account: PaymentTransferDisplayCard;compact?:boolean }) {
   const [copying, setCopying] = useState(false)
   const [message, setMessage] = useState('')
   const [manualCopy, setManualCopy] = useState<string | null>(null)
   const copy = async (details: boolean) => {
-    const content = details ? transferAccountDetails(account) : transferAccountNumber(account.accountNumber)
+    const content = details ? transferAccountDetails(account) : compact ? account.accountNumber.replace(/\D/g, '') : transferAccountNumber(account.accountNumber)
     setCopying(true); setMessage(''); setManualCopy(null)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable')
@@ -34,6 +35,17 @@ export function PaymentTransferCard({ account }: { account: PaymentTransferDispl
       setMessage('คัดลอกอัตโนมัติไม่ได้ กรุณาเลือกข้อความด้านล่างแล้วคัดลอกด้วยตนเอง')
       setManualCopy(content)
     } finally { setCopying(false) }
+  }
+  if(compact){
+    const bank=({SCB:{file:'scb',name:'ธนาคารไทยพาณิชย์',color:'#4e2e7f'},กรุงศรี:{file:'bay',name:'ธนาคารกรุงศรีอยุธยา',color:'#fec43b'},TTB:{file:'ttb',name:'ธนาคารทหารไทยธนชาต',color:'#ecf0f1'},'ธ.กรุงเทพ':{file:'bbl',name:'ธนาคารกรุงเทพ',color:'#1e4598'}} as Record<string,{file:string;name:string;color:string}>)[account.bankName]
+    return <section className="min-w-0 rounded-2xl border bg-white p-4 text-center shadow-sm" data-testid="payment-transfer-card">
+      <div className="flex items-center justify-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full p-2" style={{backgroundColor:bank?.color||'#64748b'}}>{bank&&<Image src={'/banks/'+bank.file+'.svg'} width={28} height={28} alt=""/>}</span><p className="font-semibold">{bank?.name||account.bankName}</p></div>
+      <Button type="button" disabled={copying||!account.accountNumber} onClick={()=>void copy(false)} aria-label={'คัดลอกเลขบัญชี '+account.accountNumber} className="mx-auto mt-4 flex h-auto min-h-12 max-w-full gap-3 rounded-full bg-[#153c85] px-5 py-3 text-white hover:bg-blue-900"><span className="select-all break-all text-xl font-bold sm:text-2xl" data-testid="payment-transfer-number">{account.accountNumber}</span><Copy className="h-5 w-5 shrink-0"/></Button>
+      <p className="mt-3 break-words text-sm text-gray-600" data-testid="payment-transfer-recipient">{account.accountName}</p>
+      {account.branches.length>1&&<p className="mt-2 text-xs text-gray-500">สำหรับ {account.branches.map(b=>b.name).join(' · ')}</p>}
+      {message&&<p role="status" className="mt-2 text-sm text-blue-700">{message}</p>}
+      {manualCopy!==null&&<Textarea aria-label="เลขบัญชีสำหรับคัดลอกด้วยตนเอง" readOnly value={manualCopy} onFocus={e=>e.currentTarget.select()}/>}
+    </section>
   }
   return (
     <section className={`min-w-0 space-y-3 rounded-xl border-l-4 p-4 ${BANK_STYLE[account.bankName] || 'border-slate-300 bg-slate-50 text-slate-950'}`}
@@ -63,6 +75,7 @@ export function PaymentTransferCard({ account }: { account: PaymentTransferDispl
 }
 
 interface TransferInstructionsProps {
+  compact?: boolean
   settings: PaymentTransferSettings
   branches: PaymentBranch[]
   payBookingIds: string[]
@@ -71,7 +84,7 @@ interface TransferInstructionsProps {
   submitted: boolean
 }
 
-export function PaymentTransferInstructions({ settings, branches, payBookingIds, bookings, bookingSessionsMap, submitted }: TransferInstructionsProps) {
+export function PaymentTransferInstructions({ settings, branches, payBookingIds, bookings, bookingSessionsMap, submitted,compact=false }: TransferInstructionsProps) {
   // Mounted separately for each open payment dialog. Receiver changes require an
   // explicit acknowledgement; refresh/polling never replace an in-flight card.
   const [snapshot, setSnapshot] = useState({ settings, branches })
@@ -133,7 +146,7 @@ export function PaymentTransferInstructions({ settings, branches, payBookingIds,
   return <div className="min-w-0 space-y-3" data-testid="payment-transfer-instructions">
     {result.cards.length > 0 && <p className="text-sm font-semibold text-slate-900">{PAYMENT_TRANSFER_INSTRUCTION}</p>}
     {result.issues.map(issue => <p key={issue} role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">{issue}</p>)}
-    {result.cards.map(account => <PaymentTransferCard key={transferAccountKey(account)} account={account} />)}
+    {result.cards.map(account => <PaymentTransferCard key={transferAccountKey(account)} account={account} compact={compact} />)}
     <p className="text-xs text-slate-600">ข้อมูลสำหรับรายการที่กำลังชำระ · ตรวจล่าสุด {checkedAt} หากโอนแล้วไม่ต้องโอนซ้ำ</p>
   </div>
 }

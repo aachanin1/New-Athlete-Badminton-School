@@ -3,6 +3,7 @@ import { AdminMenuPermissionsClient } from '@/components/admin/admin-menu-permis
 import { CoachOtSettingsClient } from '@/components/admin/coach-ot-settings-client'
 import { LevelsSettingsClient } from '@/components/admin/levels-settings-client'
 import { PricingSettingsClient } from '@/components/admin/pricing-settings-client'
+import { PackageDurationSettings } from '@/components/admin/package-duration-settings'
 import { KidsMakeupSettingsClient } from '@/components/admin/kids-makeup-settings-client'
 import type { KidsMakeupSettings } from '@/lib/kids-makeup-settings'
 import { callTask10 } from '@/lib/task10-policy'
@@ -124,7 +125,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       .order('min_sessions', { ascending: true }) as unknown as { data: PricingTierRow[] | null }
 
     sectionContent = (
-      <PricingSettingsClient
+      <><PackageDurationSettings /><PricingSettingsClient
         kidsCatalogs={kidsCatalogs}
         kidsCatalogError={kidsCatalogError}
         tiers={(tiers || [])
@@ -141,7 +142,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             valid_to: tier.valid_to,
             created_at: tier.created_at,
           }))}
-      />
+      /></>
     )
   }
 

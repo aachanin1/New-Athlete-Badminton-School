@@ -1,4 +1,6 @@
 'use client'
+import { bookingHistoryTime, bookingHistoryMonth } from '@/lib/booking-history'
+import { BookingOrderReferences } from './booking-order-references'
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { bookingPaymentLifecycleMessage, bookingSessionLifecycle, type BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
@@ -45,6 +47,7 @@ import {
 } from 'lucide-react'
 
 interface BookingWithRelations {
+  package_snapshot?: {quantity:number;validity_months:number} | null
   lifecycle?: BookingPaymentLifecycle
   id: string
   user_id: string
@@ -141,6 +144,9 @@ interface CouponUsageDetail {
 }
 
 interface HistoryClientProps {
+  focusBookingIds?: string[]
+  verifiedPaymentAtMap?: Record<string, string>
+  progressiveReceiptMap?: Record<string, string>
   bookings: BookingWithRelations[]
   payments: PaymentRow[]
   userId: string
@@ -381,8 +387,36 @@ function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: strin
     ? fallbackNames.map((name) => ({ name, count: fallbackTotal })) : []
 }
 
+function HistoryProgressiveSlip({ batchId }: { batchId: string }) {
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const show = async () => {
+    setOpen(true); setBusy(true); setError(''); setUrl(null)
+    try {
+      const response = await fetch('/api/progressive-payments/' + encodeURIComponent(batchId) + '/status', { cache: 'no-store', signal: AbortSignal.timeout(8000) })
+      const result = await response.json()
+      if (!response.ok || typeof result.batch?.slipUrl !== 'string') throw Error('ยังเปิดสลิปไม่ได้ กรุณาลองอีกครั้ง')
+      setUrl(result.batch.slipUrl)
+    } catch { setError('ยังเปิดสลิปไม่ได้ กรุณาลองอีกครั้ง') }
+    finally { setBusy(false) }
+  }
+  return <>
+    <Button type="button" size="sm" variant="ghost" className="text-[#2748bf]" onClick={() => void show()}><ImageIcon className="mr-1 h-3.5 w-3.5" />ดูสลิป</Button>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>สลิปการชำระเงินรายการนี้</DialogTitle><DialogDescription>หลักฐานเดิมของชุดชำระเงินนี้</DialogDescription></DialogHeader>
+      {busy && <p role="status">กำลังเปิดสลิป…</p>}
+      {error && <div role="alert"><p>{error}</p><Button type="button" variant="outline" disabled={busy} onClick={() => void show()}>ลองอีกครั้ง</Button></div>}
+      {url && <Image unoptimized src={url} alt="สลิปการชำระเงินรายการนี้" width={600} height={800} className="max-h-[65dvh] w-full object-contain" />}
+    </DialogContent></Dialog>
+  </>
+}
+
 export function HistoryClient({
   bookings: sourceBookings,
+  focusBookingIds = [],
+  verifiedPaymentAtMap = {},
+  progressiveReceiptMap = {},
   payments,
   userId: _userId,
   isAdmin = false,
@@ -396,8 +430,27 @@ export function HistoryClient({
   progressiveScopeRevisionMap = {},
   activeProgressiveBatches = [],
 }: HistoryClientProps) {
+  const canManageCustomerPayment = false
   const bookings = sourceBookings
   const router = useRouter()
+  const visibleOrderIds = useMemo(() => bookings.map(b => b.id), [bookings])
+  const focusedBookings = bookings.filter(b => focusBookingIds.includes(b.id))
+  const focusKey = focusBookingIds.join(',')
+  useEffect(() => {
+    const first = focusKey.split(',')[0]
+    if (!first) return
+    const timer = setTimeout(() => document.getElementById('history-booking-' + first)?.scrollIntoView({ block: 'start' }), 0)
+    return () => clearTimeout(timer)
+  }, [focusKey])
+  useEffect(() => {
+    let lastRefresh = Date.now()
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - lastRefresh < 5000) return
+      lastRefresh = Date.now(); router.refresh()
+    }
+    window.addEventListener('focus', refresh); document.addEventListener('visibilitychange', refresh)
+    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh) }
+  }, [router])
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null)
@@ -1013,7 +1066,7 @@ export function HistoryClient({
     const map = new Map<string, BookingWithRelations[]>()
 
     bookings.forEach((b) => {
-      const key = `${b.year}-${String(b.month).padStart(2, '0')}`
+      const key = bookingHistoryMonth(bookingHistoryTime(b, verifiedPaymentAtMap))
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(b)
     })
@@ -1022,23 +1075,23 @@ export function HistoryClient({
     const sortedKeys = Array.from(map.keys()).sort((a, b) => b.localeCompare(a))
 
     sortedKeys.forEach((key) => {
-      const items = map.get(key)!
-      const first = items[0]
+      const items = [...map.get(key)!].sort((a, b) => bookingHistoryTime(b, verifiedPaymentAtMap) - bookingHistoryTime(a, verifiedPaymentAtMap) || b.id.localeCompare(a.id))
+      const [eventYear, eventMonth] = key.split('-').map(Number)
       const total = items
-        .filter((b) => b.status !== 'cancelled' && !b.lifecycle?.due)
+        .filter((b) => b.status === 'verified' && !b.lifecycle?.due)
         .reduce((sum, b) => sum + b.total_price, 0)
       groups.push({
         key,
-        label: `${MONTH_NAMES[first.month]} ${first.year}`,
-        year: first.year,
-        month: first.month,
+        label: `${MONTH_NAMES[eventMonth]} ${eventYear}`,
+        year: eventYear,
+        month: eventMonth,
         bookings: items,
         total,
       })
     })
 
     return groups
-  }, [bookings])
+  }, [bookings, verifiedPaymentAtMap])
 
   const toggleMonthExpanded = (monthKey: string) => {
     setExpandedMonthKeys((prev) => {
@@ -1101,12 +1154,12 @@ export function HistoryClient({
 
   return (
     <>
-      {!isAdmin && (
+      {canManageCustomerPayment && (
         <span className="sr-only" data-testid="progressive-payment-lifecycle">
           {progressiveLifecycle}
         </span>
       )}
-      {!isAdmin && progressivePaymentError && (
+      {canManageCustomerPayment && progressivePaymentError && (
         <div
           className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
           data-testid="progressive-payment-error"
@@ -1116,7 +1169,7 @@ export function HistoryClient({
           {progressivePaymentError}
         </div>
       )}
-      {!isAdmin && activeProgressiveBatches.length > 0 && (
+      {canManageCustomerPayment && activeProgressiveBatches.length > 0 && (
         <Card className="mb-4 border-indigo-200 bg-indigo-50">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1140,7 +1193,7 @@ export function HistoryClient({
         </Card>
       )}
 
-      {!isAdmin && progressivePendingGroups.map((group) => {
+      {canManageCustomerPayment && progressivePendingGroups.map((group) => {
         if (activeProgressiveBatches.some((batch) => batch.pricing_scope_id === group.scopeId)) return null
         const batchTotal = group.bookings.reduce((sum, booking) => sum + booking.total_price, 0)
         const first = group.bookings[0]
@@ -1191,7 +1244,7 @@ export function HistoryClient({
       })}
 
       {/* Grouped payment banner */}
-      {!isAdmin && legacyPendingBookings.length > 1 && (
+      {canManageCustomerPayment && legacyPendingBookings.length > 1 && (
         <Card className="mb-4 border-[#f57e3b]/30 bg-[#f57e3b]/5">
           <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
@@ -1221,10 +1274,11 @@ export function HistoryClient({
         </Card>
       )}
 
+      {focusBookingIds.length > focusedBookings.length && <p role="status" className="mb-4 text-sm text-amber-800">ไม่พบรายการบางรายการของบัญชีนี้ กรุณาตรวจรหัสรายการหรือลองโหลดใหม่</p>}
       <div className="space-y-8">
         {groupedBookings.map((group) => {
           const isExpanded = expandedMonthKeys.has(group.key)
-          const visibleBookings = isExpanded ? group.bookings : group.bookings.slice(0, BOOKINGS_PREVIEW_PER_MONTH)
+          const visibleBookings = isExpanded ? group.bookings : group.bookings.filter((b, index) => index < BOOKINGS_PREVIEW_PER_MONTH || focusBookingIds.includes(b.id))
           const hiddenCount = group.bookings.length - visibleBookings.length
 
           return (
@@ -1233,11 +1287,11 @@ export function HistoryClient({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-1 bg-[#2748bf] rounded-full" />
-                <h2 className="text-lg font-bold text-[#153c85]">{group.label}</h2>
+                <h2 className="text-lg font-bold text-[#153c85]">{group.label} · เดือนทำรายการ</h2>
                 <Badge variant="outline" className="text-xs">{group.bookings.length} รายการ</Badge>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500">ยอดรวมเดือนนี้</p>
+                <p className="text-xs text-gray-500">ยอดยืนยันชำระ</p>
                 <p className="text-lg font-bold text-[#2748bf]">฿{group.total.toLocaleString()}</p>
               </div>
             </div>
@@ -1257,7 +1311,7 @@ export function HistoryClient({
                 )
 
                 return (
-                  <Card key={booking.id} data-testid={`history-booking-${booking.id}`} className="hover:shadow-md transition-shadow">
+                  <Card key={booking.id} id={`history-booking-${booking.id}`} data-testid={`history-booking-${booking.id}`} className={"scroll-mt-20 hover:shadow-md transition-shadow " + (focusBookingIds.includes(booking.id) ? "ring-2 ring-blue-400" : "")}>
                     <CardContent className="p-5">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1 space-y-2">
@@ -1265,9 +1319,10 @@ export function HistoryClient({
                             <Badge className={status.color}>{booking.lifecycle?.due ? 'หมดกำหนดรับสลิป' : verifiedZeroCharge ? 'ยืนยันแล้ว — ไม่ต้องชำระเงิน' : status.label}</Badge>
                             <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                           </div>
-                          <p className="text-xs text-gray-500">{verifiedZeroCharge ? 'ยอดสุทธิ 0 บาท ไม่ต้องแนบสลิป ตารางเรียนพร้อมใช้งาน' : bookingPaymentLifecycleMessage(booking.lifecycle) || STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
-                          {!verifiedZeroCharge && booking.lifecycle?.inCohort && booking.lifecycle.deadline && <p className="text-xs text-gray-500">กำหนดรับสลิป {new Date(booking.lifecycle.deadline).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>}
-                          {!isAdmin && booking.status === 'pending_payment' && !booking.lifecycle?.due && latestRejectedPayment?.notes && (
+                          <BookingOrderReferences ids={[booking.id]} visibleIds={visibleOrderIds} /><p className="text-xs text-gray-500">{verifiedZeroCharge ? 'ยอดสุทธิ 0 บาท ไม่ต้องแนบสลิป ตารางเรียนพร้อมใช้งาน' : bookingPaymentLifecycleMessage(booking.lifecycle) || STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
+                          {booking.status !== 'verified' && !verifiedZeroCharge && booking.lifecycle?.inCohort && booking.lifecycle.deadline && <p className="text-xs text-gray-500">กำหนดรับสลิป {new Date(booking.lifecycle.deadline).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>}
+                          {booking.status === 'verified' && !verifiedZeroCharge && <p className="text-xs text-gray-500">{verifiedPaymentAtMap[booking.id] ? 'ยืนยันชำระเมื่อ ' + formatThaiDateTimeWithWeekday(verifiedPaymentAtMap[booking.id]) : 'ไม่มีข้อมูลเวลายืนยันชำระ'}</p>}
+                          {canManageCustomerPayment && booking.status === 'pending_payment' && !booking.lifecycle?.due && latestRejectedPayment?.notes && (
                             <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                               <p className="font-medium">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
                               <p className="mt-1 whitespace-pre-wrap">{latestRejectedPayment.notes}</p>
@@ -1295,6 +1350,7 @@ export function HistoryClient({
                               </div>
                             )}
                           </div>
+                          {booking.package_snapshot&&<p className="mt-2 text-sm text-blue-800">{booking.package_snapshot.quantity===1?'ใช้ได้ในเดือนเรียนที่เลือก':`อายุแพ็กเกจ ${booking.package_snapshot.validity_months} เดือน นับเดือนยืนยันชำระเป็นเดือนที่ 1`}{booking.status==='verified'&&<> · <a className="font-semibold underline" href="/dashboard/lesson-wallet">ดูวันหมดอายุและสิทธิคงเหลือในกระเป๋า</a></>}</p>}
                           {isAdmin && booking.profiles && (
                             <p className="text-xs text-gray-400 mt-1">ผู้จอง: {booking.profiles.full_name} ({booking.profiles.email})</p>
                           )}
@@ -1320,7 +1376,7 @@ export function HistoryClient({
                                 ดูรายละเอียด
                               </Button>
                             )}
-                            {!isAdmin && booking.status === 'pending_payment' && !booking.lifecycle?.due && !progressiveBookingIds.has(booking.id) && legacyPendingBookings.length <= 1 && (
+                            {canManageCustomerPayment && booking.status === 'pending_payment' && !booking.lifecycle?.due && !progressiveBookingIds.has(booking.id) && legacyPendingBookings.length <= 1 && (
                               <Button
                                 size="sm"
                                 className="bg-[#f57e3b] hover:bg-[#e06a2a]"
@@ -1330,18 +1386,19 @@ export function HistoryClient({
                                 แนบสลิป
                               </Button>
                             )}
-                            {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) < booking.total_sessions && (
+                            {canManageCustomerPayment && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) < booking.total_sessions && (
                               <div className="max-w-[260px] rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                                 รายการเก่ายังเลือกวันไม่ครบ กรุณาจองรอบใหม่จากหน้าจองคอร์สหรือแจ้งแอดมินให้ช่วยตรวจสอบ
                               </div>
                             )}
                           </div>
-                          {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) >= booking.total_sessions && (
+                          {canManageCustomerPayment && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) >= booking.total_sessions && (
                             <p className="text-xs text-green-600">เลือกวันเรียนครบแล้ว</p>
                           )}
                         </div>
                       </div>
 
+                      {progressiveReceiptMap[booking.id] && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-sm"><span className="text-green-700">ยืนยันการชำระเงินแล้ว</span><HistoryProgressiveSlip batchId={progressiveReceiptMap[booking.id]} /></div>}
                       {/* Payment info */}
                       {bookingPayments.length > 0 && (
                         <div className="mt-3 border-t pt-3">
@@ -1584,6 +1641,7 @@ export function HistoryClient({
 
           {selectedBooking && (
             <div className="space-y-4 mt-2">
+              <BookingOrderReferences ids={[selectedBooking.id]} visibleIds={visibleOrderIds} />
               {error && (
                 <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
                   {error}
@@ -1639,7 +1697,7 @@ export function HistoryClient({
                 </div>
               )}
 
-              {!isAdmin && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && getLatestRejectedPayment(selectedBooking.id)?.notes && (
+              {canManageCustomerPayment && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && getLatestRejectedPayment(selectedBooking.id)?.notes && (
                 <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
                   <p className="font-semibold">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
                   <p className="mt-1 whitespace-pre-wrap">{getLatestRejectedPayment(selectedBooking.id)?.notes}</p>
@@ -1768,7 +1826,7 @@ export function HistoryClient({
 
               {/* Actions */}
               <div className="flex flex-col gap-2 pt-2 border-t">
-                {!isAdmin && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && (
+                {canManageCustomerPayment && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && (
                   <Button
                     className="w-full bg-[#2748bf] hover:bg-[#153c85]"
                     onClick={() => router.push(`/dashboard/booking?editBookingId=${selectedBooking.id}`)}
@@ -1778,7 +1836,7 @@ export function HistoryClient({
                   </Button>
                 )}
                 <div className="flex gap-2">
-                  {!isAdmin && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && (
+                  {canManageCustomerPayment && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && (
                     <Button
                       variant="outline"
                       className="flex-1 text-red-600 border-red-300 hover:bg-red-50"

@@ -15,6 +15,7 @@ import { PaymentSettingsClient } from '@/components/admin/payment-settings-clien
 import { formatThaiDateTimeWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import type { PaymentBranch, PaymentTransferSettings } from '@/lib/payment-settings'
 import type { BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
+import {storedSlipCheck} from '@/lib/booking-slip-result'
 import {
   AlertTriangle,
   Banknote,
@@ -168,6 +169,9 @@ function formatDate(dateStr: string | null) {
 function getVerificationSource(payment: PaymentData) {
   if (payment.source_kind === 'progressive') return { label: 'Progressive Batch', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
   const notes = payment.notes || ''
+  const check=storedSlipCheck(notes)
+  if(check?.code==='TEST_APPROVED')return {label:'TEST MODE',className:'bg-sky-50 text-sky-700 border-sky-200'}
+  if(check)return {label:check.decision==='approved'?'SlipOK':check.decision==='rejected'?'SlipOK — แก้สลิป':'SlipOK — รอลองตรวจอีกครั้ง',className:'bg-blue-50 text-blue-700 border-blue-200'}
   if (notes.includes('[TEST MODE]')) return { label: 'TEST MODE', className: 'bg-sky-50 text-sky-700 border-sky-200' }
   if (notes.includes('SlipOK verified')) return { label: 'SlipOK', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
   if (notes.includes('SlipOK')) return { label: 'SlipOK ต้องตรวจสอบ', className: 'bg-amber-50 text-amber-700 border-amber-200' }
@@ -865,7 +869,8 @@ export function PaymentsClient({
                     <FileText className="h-3.5 w-3.5" />
                     ผลตรวจ/หมายเหตุ
                   </p>
-                  <p className="whitespace-pre-wrap text-sm text-blue-800">{detailPayment.notes}</p>
+                  <p className="whitespace-pre-wrap text-sm text-blue-800">{storedSlipCheck(detailPayment.notes)?.message||detailPayment.notes}</p>
+                  {storedSlipCheck(detailPayment.notes)?.providerReference&&<p className="mt-1 break-all text-xs text-blue-700">เลขอ้างอิงผลตรวจ: {storedSlipCheck(detailPayment.notes)?.providerReference}</p>}
                 </div>
               )}
 

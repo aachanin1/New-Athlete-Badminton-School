@@ -20,6 +20,7 @@ import type { MakeupHistorySubject } from '@/lib/admin-makeup-history'
 import { toast } from 'sonner'
 import { MakeupCreditApproval } from '@/components/admin/makeup-credit-approval'
 import { forgetMakeupOperation, sendMakeupOperation } from '@/lib/admin-makeup-operation-client'
+import {adminMakeupCurrentMonth} from '@/lib/admin-makeup-month'
 type MakeupStatusFilter = 'all'|'actionable'|'makeup'|'expired'
 const formatDate = formatThaiDateWithWeekday
 const formatTime=(start:string,end:string)=>start.slice(0,5)+'-'+end.slice(0,5)
@@ -35,10 +36,12 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
   const [childId, setChildId] = useState('')
   const [date, setDate] = useState('')
   const [templateId, setTemplateId] = useState('')
+  const [targetMonth,setTargetMonth]=useState(()=>adminMakeupCurrentMonth())
   const [reason, setReason] = useState(''), [reasonNote, setReasonNote] = useState(''), [preferredSource, setPreferredSource] = useState('')
   const fullReason = adminActionReason(reason, reasonNote)
   const continuationHandled = useRef('')
   const now = useMakeupCalendarNow(Boolean(selected))
+  const calendarMonth=targetMonth<adminMakeupCurrentMonth(now)?adminMakeupCurrentMonth(now):targetMonth
   const [saving, setSaving] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const [approvalBusy, setApprovalBusy] = useState(false), [notRecorded, setNotRecorded] = useState(false)
@@ -58,8 +61,8 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
   const locked = saving || uncertain || approvalBusy
   const source = state?.sources.find(item => item.sourceSessionId === preferredSource) || state?.sources[0]
   const sourceReady = Boolean(state?.eligible && source && (state.remaining > 0 || source.approval?.status === 'approved' || source.approvalAvailable))
-  const calendarDays = useMemo(() => kidsMakeupCalendarDays(state?.destinationMonth || '', branches, scheduleTemplates, now), [state?.destinationMonth, branches, scheduleTemplates, now])
-  const pickedSlot = state ? findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, now) : null
+  const calendarDays = useMemo(() => kidsMakeupCalendarDays(calendarMonth, branches, scheduleTemplates, now), [calendarMonth, branches, scheduleTemplates, now])
+  const pickedSlot = state ? findKidsMakeupSlot(calendarMonth, date, templateId, branches, scheduleTemplates, now) : null
   useEffect(() => {
     // An uncertain transaction must retain its exact payload even after a slot starts.
     if (locked || inFlight.current || request.current || !date || !state) return
@@ -67,10 +70,10 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
       setDate(''); setTemplateId(''); setError('วันที่เลือกไม่มีรอบที่ยังไม่เริ่ม กรุณาเลือกวันใหม่'); return
     }
     if (!templateId) return
-    if (!findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, now)) {
+    if (!findKidsMakeupSlot(calendarMonth, date, templateId, branches, scheduleTemplates, now)) {
       setTemplateId(''); setError('รอบที่เลือกเริ่มแล้วหรือเลือกไม่ได้ กรุณาเลือกวันและรอบใหม่')
     }
-  }, [locked, templateId, state, date, branches, scheduleTemplates, now, calendarDays])
+  }, [locked, templateId, state, date, branches, scheduleTemplates, now, calendarDays, calendarMonth])
   const filtered = cards.map(card => ({ ...card, state: overrides[keyOf(card.state)] || card.state })).filter(card => {
     const s = card.state
     // Quota alone is not a source. Keep spent history and source-bearing
@@ -103,6 +106,7 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
     const current = overrides[keyOf(card.state)] || card.state
     setSelected(card); setChildId(current.children.length === 1 ? current.children[0].id : ''); setDate(''); setTemplateId(''); setError(null); setSuccess(null)
     setReason(''); setReasonNote(''); setPreferredSource(''); setNotRecorded(false)
+    setTargetMonth(adminMakeupCurrentMonth())
     setDialogReading(true); setDialogReadError(false)
     const fresh = await reload(card)
     if (opening !== dialogReadRevision.current) return
@@ -124,12 +128,13 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
     setSelected(card); setChildId(continuation.childId); setDate(''); setTemplateId(''); setError(null); setSuccess(null)
     setDialogReading(false); setDialogReadError(false)
     setReason(continuation.reason); setReasonNote(continuation.note); setPreferredSource(continuation.sourceSessionId)
+    setTargetMonth(adminMakeupCurrentMonth())
     onContinuationHandled()
   }, [cards, continuation, onContinuationHandled])
   async function consume() {
     if (inFlight.current || dialogReading || dialogReadError || !state || !selected) return
     if (!request.current) {
-      const slot = findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, new Date())
+      const slot = findKidsMakeupSlot(calendarMonth, date, templateId, branches, scheduleTemplates, new Date())
       const template = slot && scheduleTemplates.find(t => t.id === slot.templateId)
       if (!sourceReady || !fullReason || !state.children.some(child => child.id === childId)) return
       if (!template) { setTemplateId(''); setError('รอบที่เลือกเริ่มแล้วหรือเลือกไม่ได้ กรุณาเลือกวันและรอบใหม่'); return }
@@ -186,7 +191,7 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
         </div>
         <p className="font-medium">ใช้ได้ตอนนี้ {availableFamilyMakeupCount(s)} ครั้ง <span className="text-sm font-normal text-gray-500">สิทธิ์ร่วมทั้งครอบครัว ไม่แยกเพิ่มต่อเด็ก</span></p>
         <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Admin จัดชดเชยได้โดยไม่ต้องรอซื้อเดือนถัดไป · คงโควตา ต้นทาง และอายุสิทธิ์เดิม</p>
-        <p className="text-sm">ใช้ใน {formatThaiMonthYear(`${s.destinationMonth}-01`)} · ถึง {formatThaiDateTimeWithWeekday(new Date(Date.parse(s.expiresAt) - 1))}</p>
+        <p className="text-sm">Admin เลือกเดือนปัจจุบันหรือเดือนอนาคตได้ · ต้องยืนยันใช้ต้นทางภายใน {formatThaiDateTimeWithWeekday(new Date(Date.parse(s.expiresAt) - 1))}</p>
         {s.reason ? <p className="text-sm text-amber-800">{familyMakeupReason(s)}</p> : null}
         {(s.destinations || []).map(destination => <div key={destination.id} className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900" data-makeup-destination={destination.id}>
           <p className="font-medium">จองชดเชยแล้ว · {destination.childName}</p>
@@ -213,8 +218,9 @@ export function KidsFamilyMakeupPanel({ cards, branches, search, branch, course,
             }} /> : null}
           {source?.approvalAvailable ? <p className="text-sm text-gray-600">ใช้เครดิตที่เก็บนี้ 1 ครั้งเมื่อยืนยันจัดวัน · ใช้โควตาปกติก่อน · คงอายุสิทธิ์เดิม</p> : null}
           {childId && options.ready && sourceReady ? <>
-            <p className="text-sm text-gray-600">เลือกได้ตั้งแต่วันนี้ เฉพาะเดือนสิทธิ์ {formatThaiMonthYear(`${state.destinationMonth}-01`)} และรอบที่ยังไม่เริ่ม (เวลาไทย)</p>
-            <MakeupCalendarPicker month={state.destinationMonth} days={calendarDays} selectedDate={date} selectedSlot={pickedSlot} disabled={locked}
+            <p className="text-sm text-gray-600">Admin เลือกเดือนปัจจุบันหรือเดือนอนาคตได้ เฉพาะรอบที่ยังไม่เริ่ม (เวลาไทย)</p>
+            <MakeupCalendarPicker month={calendarMonth} days={calendarDays} selectedDate={date} selectedSlot={pickedSlot} disabled={locked}
+              onMonthChange={value=>{if(!locked&&!inFlight.current&&!request.current){setTargetMonth(value);setDate('');setTemplateId('')}}}
               onDateChange={value => { if (!inFlight.current && !request.current) { setDate(value); setTemplateId('') } }}
               onSlotChange={slot => { if (!inFlight.current && !request.current) setTemplateId(slot.templateId || '') }} />
           </> : !childId ? <p className="text-sm text-gray-500">เลือกเด็กที่จะมาเรียนเพื่อเปิดปฏิทิน</p> : null}

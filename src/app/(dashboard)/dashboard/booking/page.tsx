@@ -3,6 +3,9 @@ import { BranchDateClosureReadNotice } from '@/components/branch-date-closure-re
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingClient } from '@/components/dashboard/booking-client'
+import { BookingPaymentClient } from '@/components/dashboard/booking-payment-client'
+import { loadPreviousBookings, loadBookingPackages } from '@/lib/booking-checkout-server'
+import type { BookingPackage } from '@/lib/booking-checkout'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { loadBookingPricingPolicy } from '@/lib/booking-pricing-policy'
 import { bangkokDate, Task10Error, task10RpcError } from '@/lib/task10-policy'
@@ -64,6 +67,9 @@ interface ExistingBookingSessionRow {
 }
 
 interface EditBookingRow extends ExistingBookingRow {
+  checkout_deadline?: string | null
+  package_snapshot?:BookingPackage|null
+  package_participants?:Array<string|null>|null
   user_id: string
   learner_type: LearnerType
   branch_id: string
@@ -88,63 +94,44 @@ interface EditBookingData extends EditBookingRow {
   childIds: string[]
 }
 
-export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string; month?: string }> }) {
+export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string; month?: string; payment?: string }> }) {
   const resolvedSearchParams = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
-  const { available: branchClosuresAvailable, closures: branchClosures } = await readFutureBranchDateClosureState(supabase)
+  if (resolvedSearchParams.payment) return <BookingPaymentClient bookingId={resolvedSearchParams.payment}/>
+  const packagePromise = loadBookingPackages()
+  const previousPromise = loadPreviousBookings(user.id)
+  const closurePromise = readFutureBranchDateClosureState(supabase)
+  const childrenPromise = supabase.from('children').select('*').eq('parent_id',user.id).order('created_at',{ascending:false})
+  const branchesPromise = supabase.from('branches').select('*').eq('is_active',true).order('name')
+  const coursesPromise = supabase.from('course_types').select('id,name')
+  const pricesPromise = supabase.from('pricing_tiers').select('id,course_type_id,min_sessions,max_sessions,price_per_session,package_price,valid_from,valid_to,created_at,course_types(name)').order('min_sessions',{ascending:true})
+  const templatesPromise = supabase.from('schedule_templates').select('id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active,notes,branches(slug),course_types(name)').eq('is_active',true)
+  const profilePromise = supabase.from('profiles').select('full_name,phone').eq('id',user.id).single()
+  const bookingsPromise = supabase.from('bookings').select('id,child_id,course_type_id,month,year,total_sessions,total_price,status').eq('user_id',user.id).in('status',['pending_payment','paid','verified'])
+  const [closureState,childrenResult,branchesResult,coursesResult,pricesResult,templatesResult,profileResult,bookingsResult] = await Promise.all([closurePromise,childrenPromise,branchesPromise,coursesPromise,pricesPromise,templatesPromise,profilePromise,bookingsPromise])
+  const {available:branchClosuresAvailable,closures:branchClosures}=closureState
 
   // Fetch children for this parent
-  const { data: children } = await supabase
-    .from('children')
-    .select('*')
-    .eq('parent_id', user.id)
-    .order('created_at', { ascending: false }) as unknown as { data: Child[] | null }
+  const { data: children } = childrenResult as unknown as { data: Child[] | null }
 
   // Fetch branches
-  const { data: branches } = await supabase
-    .from('branches')
-    .select('*')
-    .eq('is_active', true)
-    .order('name') as unknown as { data: Branch[] | null }
+  const { data: branches } = branchesResult as unknown as { data: Branch[] | null }
 
   // Fetch course types to get UUIDs
-  const { data: courseTypes } = await supabase
-    .from('course_types')
-    .select('id, name') as unknown as { data: Pick<CourseType, 'id' | 'name'>[] | null }
+  const { data: courseTypes } = coursesResult as unknown as { data: Pick<CourseType, 'id' | 'name'>[] | null }
 
-  const { data: pricingTiers } = await supabase
-    .from('pricing_tiers')
-    .select(`
-      id, course_type_id, min_sessions, max_sessions, price_per_session, package_price, valid_from, valid_to, created_at,
-      course_types(name)
-    `)
-    .order('min_sessions', { ascending: true }) as unknown as { data: PricingTierRow[] | null }
+  const { data: pricingTiers } = pricesResult as unknown as { data: PricingTierRow[] | null }
 
-  const { data: scheduleTemplates } = await supabase
-    .from('schedule_templates')
-    .select(`
-      id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active, notes,
-      branches(slug),
-      course_types(name)
-    `)
-    .eq('is_active', true) as unknown as { data: ScheduleTemplateRow[] | null }
+  const { data: scheduleTemplates } = templatesResult as unknown as { data: ScheduleTemplateRow[] | null }
 
   // Fetch user profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, phone')
-    .eq('id', user.id)
-    .single() as unknown as { data: ProfileRow | null }
+  const { data: profile } = profileResult as unknown as { data: ProfileRow | null }
 
   // Fetch active bookings for calendar conflict display. Pricing true-up filters this list to settled rows only.
-  const { data: existingBookings } = await supabase
-    .from('bookings')
-    .select('id, child_id, course_type_id, month, year, total_sessions, total_price, status')
-    .eq('user_id', user.id)
-    .in('status', ['pending_payment', 'paid', 'verified']) as unknown as { data: ExistingBookingRow[] | null }
+  const { data: existingBookings } = bookingsResult as unknown as { data: ExistingBookingRow[] | null }
 
   // Fetch existing booking sessions for calendar display (prevent double-booking)
   const existingBookingIds = (existingBookings || []).map((booking) => booking.id)
@@ -164,7 +151,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
   if (resolvedSearchParams.editBookingId) {
     const { data: booking } = await supabase
       .from('bookings')
-      .select('id, user_id, learner_type, child_id, branch_id, course_type_id, month, year, total_sessions, total_price, status, pricing_scope_id, pricing_revision, course_types(name)')
+      .select('id, user_id, learner_type, child_id, branch_id, course_type_id, month, year, total_sessions, total_price, status, pricing_scope_id, pricing_revision, package_snapshot, package_participants, checkout_deadline, course_types(name)')
       .eq('id', resolvedSearchParams.editBookingId)
       .eq('user_id', user.id)
       .single() as unknown as { data: EditBookingRow | null }
@@ -177,7 +164,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
         .order('date', { ascending: true }) as unknown as { data: EditBookingSessionRow[] | null }
 
       // Get all child_ids from sessions for multi-child bookings
-      const childIds = Array.from(new Set((sessions || []).map((session) => session.child_id).filter(Boolean))) as string[]
+      const childIds = Array.from(new Set([...(sessions || []).map((session) => session.child_id),...(booking.package_participants||[])].filter(Boolean))) as string[]
 
       editBookingData = { ...booking, sessions: sessions || [], childIds }
     }
@@ -199,6 +186,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
     })
     : { policy: null, error: null, code: null }
 
+  const [packages, previousBookings] = await Promise.all([packagePromise, previousPromise])
   return (
     <div className="space-y-6">
       <div>
@@ -211,6 +199,11 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
       </div>
       {!branchClosuresAvailable ? <BranchDateClosureReadNotice /> : null}
       <BookingClient
+        key={editBookingData?.id || 'new'}
+        todayBangkok={todayBangkok}
+        serverNow={new Date().toISOString()}
+        packages={packages}
+        previousBookings={previousBookings}
         initialKidsPricingPolicy={kidsPolicyResult.policy}
         initialKidsPricingError={kidsPolicyResult.error}
         initialKidsPricingErrorCode={kidsPolicyResult.code}

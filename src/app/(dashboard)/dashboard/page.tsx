@@ -83,7 +83,7 @@ export default async function DashboardPage() {
     .eq('status', 'pending_payment') as unknown as { data: PendingBookingRow[] | null }
 
   const pendingLifecycle = await loadBookingPaymentLifecycle(getServiceRoleClient(), (pendingBookingsData || []).map((booking) => booking.id))
-  const pendingBookings = (pendingBookingsData || []).filter((booking) => !pendingLifecycle.get(booking.id)?.due && pendingLifecycle.get(booking.id)?.status === 'pending_payment')
+  const pendingBookings = (pendingBookingsData || []).filter((booking) => !pendingLifecycle.get(booking.id)?.due && !pendingLifecycle.get(booking.id)?.acceptedReceipt && pendingLifecycle.get(booking.id)?.status === 'pending_payment')
   const pendingAmount = pendingBookings.reduce((sum, booking) => sum + (booking.total_price || 0), 0)
   const hasPending = (pendingBookings || []).length > 0
 
@@ -219,9 +219,9 @@ export default async function DashboardPage() {
                   </p>
                   <p className="text-xs text-gray-500">แนบสลิปโอนเงินเพื่อให้ระบบตรวจสอบอัตโนมัติ</p>
                 </div>
-                <Link href="/dashboard/history">
+                <Link href="/dashboard/payments">
                   <Button size="sm" className="bg-[#f57e3b] hover:bg-[#e06a2a]">
-                    <Upload className="h-3.5 w-3.5 mr-1" /> แนบสลิป
+                      <Upload className="h-3.5 w-3.5 mr-1" /> ชำระเงินต่อ
                   </Button>
                 </Link>
               </div>

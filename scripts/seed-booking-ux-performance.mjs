@@ -1,0 +1,20 @@
+import fs from 'node:fs'
+import assert from 'node:assert/strict'
+import {randomUUID}from'node:crypto'
+import {run,sql,q,fixtures}from'../tests/booking-ux/runtime.mjs'
+const file=run.evidenceRoot+(process.argv.includes('--candidate-flow')?'/performance-large-candidate-fixture.json':'/performance-large-fixture.json');if(fs.existsSync(file))throw Error('Keep immutable benchmark dataset')
+const f=JSON.parse(fs.readFileSync(run.evidenceRoot+'/fixture.json')),actor=await fixtures.account('user','ข้อมูลสมมติปริมาณมาก 300 รายการ'),clauses=[]
+const today=sql("SELECT (clock_timestamp() AT TIME ZONE 'Asia/Bangkok')::date"),tier=sql(`SELECT id FROM pricing_tiers WHERE course_type_id=${q(f.courses.adult_group)} AND min_sessions=10`)
+for(let n=0;n<300;n++){
+ const bill=randomUUID(),session=randomUUID(),slot=randomUUID(),credit=randomUUID(),payment=randomUUID(),date=new Date(Date.parse(today+'T12:00+07:00')+(3+Math.floor(n/2))*86400000).toISOString().slice(0,10),start=n%2?'17:00':'10:00',end=n%2?'18:00':'11:00',t=f.templates.find(t=>t.course==='adult_group'&&t.day===new Date(date+'T12:00+07:00').getUTCDay()&&t.start===start)
+ clauses.push(`INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)VALUES(${q(bill)},${q(actor.id)},'self',${q(f.branch)},${q(f.courses.adult_group)},extract(month FROM date ${q(date)}),extract(year FROM date ${q(date)}),10,5500,'verified');
+ INSERT INTO payments(id,booking_id,user_id,amount,method,status,verified_at)VALUES(${q(payment)},${q(bill)},${q(actor.id)},5500,'bank_transfer','approved',clock_timestamp());
+ INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,status)VALUES(${q(slot)},${q(t.id)},${q(f.branch)},${q(f.courses.adult_group)},${q(date)},${q(start)},${q(end)},'open')ON CONFLICT(branch_id,course_type_id,date,start_time)DO NOTHING;
+ INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,status,is_makeup)SELECT ${q(session)},${q(bill)},id,${q(date)},${q(start)},${q(end)},${q(f.branch)},'walleted',false FROM schedule_slots WHERE branch_id=${q(f.branch)} AND course_type_id=${q(f.courses.adult_group)} AND date=${q(date)} AND start_time=${q(start)};
+ INSERT INTO lesson_wallet_credits(id,user_id,booking_id,original_session_id,branch_id,course_type_id,original_schedule_slot_id,original_date,original_start_time,original_end_time,status,expires_at,entitlement_unit_type,entitlement_policy,entitlement_started_at,entitlement_payment_id,entitlement_pricing_tier_id,participant_count,entitlement_evidence)
+ SELECT ${q(credit)},${q(actor.id)},${q(bill)},${q(session)},${q(f.branch)},${q(f.courses.adult_group)},schedule_slot_id,${q(date)},${q(start)},${q(end)},'active',(date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '10 months') AT TIME ZONE 'Asia/Bangkok'-interval '1 millisecond','single','ten_month_package',clock_timestamp(),${q(payment)},${q(tier)},1,jsonb_build_object('payment_id',${q(payment)},'pricing_tier_id',${q(tier)},'policy_type','ten_month_package') FROM booking_sessions WHERE id=${q(session)};
+ INSERT INTO lesson_wallet_credit_members(credit_id,original_session_id,original_schedule_slot_id,original_date,original_start_time,original_end_time,branch_id)SELECT ${q(credit)},id,schedule_slot_id,date,start_time,end_time,branch_id FROM booking_sessions WHERE id=${q(session)};`)
+}
+sql(`BEGIN;SELECT set_config('task10.payment_write','authorized',true);SELECT set_config('task10.booking_write','authorized',true);SELECT set_config('lesson_source.write','authorized',true);SELECT set_config('task10.source_write','authorized',true);UPDATE booking_ux_control SET enabled=false WHERE singleton;${clauses.join('\n')}UPDATE booking_ux_control SET enabled=true WHERE singleton;COMMIT;`)
+assert.equal(sql(`SELECT count(*) FROM lesson_wallet_credits WHERE user_id=${q(actor.id)}`),'300')
+fs.writeFileSync(file,JSON.stringify({parent:actor,rows:300,runId:run.runId},null,2),{flag:'wx'});console.log(JSON.stringify({seeded:300,file}))
