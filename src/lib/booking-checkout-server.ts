@@ -61,6 +61,19 @@ export async function loadPreviousBookings(actor: string): Promise<PreviousBooki
 export function checkoutError(error: unknown) {
   const source = error instanceof Error ? error.message : ''
   const messages: Record<string, string> = {
+    BOOKING_UX_LEARNER_ADDITION_ONLY: 'กรุณาคงผู้เรียนเดิมไว้ และเลือกผู้เรียนที่ต้องการเพิ่มก่อนบันทึก',
+    BOOKING_UX_LEARNER_ROUND_REQUIRED: 'กรุณาเลือกวันและรอบเรียนให้ผู้เรียนที่เลือกครบทุกคน',
+    BOOKING_UX_QUOTE_CHANGED: 'ยอดเงินหรือเงื่อนไขคูปองเปลี่ยนแล้ว กรุณาตรวจยอดล่าสุดก่อนบันทึกอีกครั้ง',
+    BOOKING_UX_LEGACY_COUPON_REVIEW_REQUIRED: 'บิลเดิมมีเงื่อนไขคูปองที่ต้องตรวจสอบก่อนเปลี่ยนยอด ระบบยังเก็บวันเรียนและยอดเดิมไว้ กรุณาติดต่อผู้ดูแล',
+    BOOKING_UX_COUPON_ACK_REQUIRED: 'ยอดใหม่ไม่เข้าเงื่อนไขคูปอง กรุณาตรวจและยืนยันยอดที่ไม่มีส่วนลดก่อนบันทึก',
+    PROGRESSIVE_COUPON_NOT_FOUND: 'ไม่พบคูปองนี้',
+    PROGRESSIVE_COUPON_INACTIVE: 'คูปองนี้ไม่สามารถใช้งานได้',
+    PROGRESSIVE_COUPON_NOT_STARTED: 'คูปองยังไม่เริ่มใช้งาน',
+    PROGRESSIVE_COUPON_EXPIRED: 'คูปองหมดอายุแล้ว',
+    PROGRESSIVE_COUPON_MIN_PURCHASE: 'ยอดจองไม่ถึงยอดขั้นต่ำของคูปอง กรุณาตรวจยอดหรือเลือกโค้ดอื่น',
+    PROGRESSIVE_COUPON_COURSE_NOT_ALLOWED: 'คูปองนี้ใช้กับคอร์สที่เลือกไม่ได้',
+    PROGRESSIVE_COUPON_ALREADY_USED: 'คูปองนี้ใช้สำเร็จแล้วหรือกันสิทธิ์ไว้ในบิลที่ยังเปิดอยู่',
+    PROGRESSIVE_COUPON_MAX_USES: 'สิทธิ์คูปองถูกใช้หรือกันไว้ครบจำนวนแล้ว',
     BOOKING_UX_SET_CHANGED: 'ชุดรายการเปลี่ยนไปหรือมีการส่งสลิปแล้ว กรุณาเปิดข้อมูลล่าสุดก่อนแก้ไข',
     PROGRESSIVE_SCOPE_REVISION_CONFLICT: 'มีการเปลี่ยนรายการจากอีกหน้าต่าง กรุณาเปิดข้อมูลล่าสุด',
     PROGRESSIVE_INVALID_REQUEST: 'กรุณาเลือกวันเรียนอย่างน้อยหนึ่งรอบให้แต่ละรายการ',
@@ -82,6 +95,8 @@ export function checkoutError(error: unknown) {
     BOOKING_UX_ENTITLEMENT_UNAVAILABLE: 'สิทธินี้ถูกใช้หรือหมดอายุแล้ว กรุณาอ่านกระเป๋าล่าสุดและเลือกใหม่',
     BOOKING_UX_TARGET_INVALID: 'รอบที่เลือกเริ่มแล้วหรือเวลาไม่ถูกต้อง กรุณาเลือกรอบถัดไป',
     TASK10_LEARNER_OVERLAP: 'ผู้เรียนมีเวลาเรียนทับซ้อนแล้ว กรุณาเลือกวันหรือเวลาอื่น',
+    BOOKING_UX_PRIVATE_HOUR_OVERLAP: 'บิล Private นี้มีรอบเรียนในเวลานี้แล้ว กรุณาเลือกรอบอื่นเพื่อไม่ใช้สิทธิ์ซ้ำ',
+    BOOKING_UX_PRIVATE_HOUR_BUSY: 'กำลังปรับรอบ Private ของบิลนี้ กรุณาอ่านข้อมูลล่าสุดแล้วลองใหม่',
     TASK10_INVALID_TEMPLATE: 'รอบเรียนเปลี่ยนไปแล้ว กรุณาอ่านตารางล่าสุดและเลือกใหม่',
     TASK10_MAKEUP_INELIGIBLE: 'ยังใช้กระเป๋าข้ามเดือนไม่ได้ กรุณาตรวจจำนวนที่ชำระเดือนปลายทาง โควตา และวันหมดอายุในกระเป๋า',
     TASK10_MAKEUP_PAUSED: 'ระบบใช้กระเป๋าข้ามเดือนหยุดชั่วคราว กรุณาลองใหม่ภายหลัง',

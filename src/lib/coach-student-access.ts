@@ -60,6 +60,7 @@ interface VisibleSessionRow {
   bookings?: {
     user_id: string
     learner_type: 'self' | 'child'
+    course_types?: { name: string | null } | null
     status: string
     profiles?: {
       id?: string
@@ -174,7 +175,7 @@ async function getSessionsByIds(supabase: SupabaseLike, sessionIds: string[]) {
     .from('booking_sessions')
     .select(`
       id, date, child_id, branch_id, schedule_slot_id, rescheduled_from_id, is_makeup,
-      bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name)),
+      bookings!inner(user_id, learner_type, status, course_types(name), profiles!bookings_user_id_fkey(id, full_name)),
       children(id, full_name, nickname)
     `)
     .in('id', sessionIds)
@@ -196,7 +197,7 @@ async function getSessionsBySlots(supabase: SupabaseLike, slotIds: string[]) {
     .from('booking_sessions')
     .select(`
       id, date, child_id, branch_id, schedule_slot_id, rescheduled_from_id, is_makeup,
-      bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name)),
+      bookings!inner(user_id, learner_type, status, course_types(name), profiles!bookings_user_id_fkey(id, full_name)),
       children(id, full_name, nickname)
     `)
     .in('schedule_slot_id', slotIds)
@@ -218,7 +219,7 @@ async function getSessionsByBranches(supabase: SupabaseLike, branchIds: string[]
     .from('booking_sessions')
     .select(`
       id, date, child_id, branch_id, schedule_slot_id, rescheduled_from_id, is_makeup,
-      bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name)),
+      bookings!inner(user_id, learner_type, status, course_types(name), profiles!bookings_user_id_fkey(id, full_name)),
       children(id, full_name, nickname)
     `)
     .in('branch_id', branchIds)
@@ -327,7 +328,7 @@ export async function getCoachVisibleStudents(
       continue
     }
 
-    if (session.bookings?.user_id && session.bookings.learner_type === 'self') {
+    if (!session.child_id && session.bookings?.user_id && (session.bookings.learner_type === 'self' || session.bookings.course_types?.name === 'private')) {
       const key = getStudentKey('adult', session.bookings.user_id)
       const current = students.get(key)
       students.set(key, {

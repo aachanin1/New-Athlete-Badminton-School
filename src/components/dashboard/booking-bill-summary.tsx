@@ -7,28 +7,34 @@ const courseNames: Record<string, string> = { kids_group: 'กลุ่มเด
 
 export function BookingBillSummary({ bill, sessions, data, showPrice, showAllRounds = false }: { bill: Bill; sessions: Session[]; data: PaymentState; showPrice: boolean; showAllRounds?: boolean }) {
   const family = bill.course_types?.name === 'private'
-  const grouped = bookingSummaryRounds(sessions, family)
+  const visibleSessions = sessions.filter(s=>!['cancelled','walleted','rescheduled'].includes(s.status))
+  const grouped = bookingSummaryRounds(visibleSessions, family)
   const learnerName = (id: string | null) => {
     if (!id) return data.userName
     const child = data.learners.find(c => c.id === id) || sessions.find(s => s.child_id === id)?.children || (bill.child_id === id ? bill.children : null)
     return child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ข้อมูลผู้เรียนไม่ครบ'
   }
-  const participantIds = bill.package_participants?.length ? bill.package_participants : [...new Set(sessions.map(s => s.child_id))]
+  const participantIds = bill.package_participants?.length ? bill.package_participants : [...new Set(visibleSessions.map(s => s.child_id))]
   const names = (participantIds.length ? participantIds : [bill.child_id]).map(learnerName).join(', ')
   const branchNames = new Map(data.branches.map(b => [b.id, b.name]))
-  const renderRound = (round: { session: Session; members: Session[] }) => <div key={round.session.id} className="mt-2 text-sm text-gray-700">
-    <p>{new Date(round.session.date + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} · {round.session.start_time.slice(0, 5)}–{round.session.end_time.slice(0, 5)}</p>
-    {family && <p className="text-xs text-gray-500">ผู้เรียน: {[...new Set(round.members.map(s => s.child_id))].map(learnerName).join(', ')}</p>}
-  </div>
-  return <article className="min-w-0 border-b pb-4 last:border-0" data-testid={'booking-summary-' + bill.id}>
+  const rounds = [...grouped.branches.values()].flat().sort((a,b)=>(a.session.date+a.session.start_time).localeCompare(b.session.date+b.session.start_time))
+  const unit = family ? 'ชั่วโมง' : 'ครั้ง'
+  const participants = new Set(participantIds.map(id=>id || 'self'))
+  const renderRound = (round: { session: Session; members: Session[] }) => {
+    const members = [...new Set(round.members.map(s=>s.child_id))]
+    const differentMembers = family && (members.length !== participants.size || members.some(id=>!participants.has(id || 'self')))
+    return <div key={round.session.id} className="min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+      <p>{new Date(round.session.date + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} · {round.session.start_time.slice(0, 5)}–{round.session.end_time.slice(0, 5)}</p>
+      {grouped.branches.size > 1 && <p className="break-words text-xs text-gray-600">{branchNames.get(round.session.branch_id) || 'ไม่มีข้อมูลชื่อสาขา'}</p>}
+      {(differentMembers || !family && participants.size > 1) && <p className="break-words text-xs text-gray-600">ผู้เรียน: {members.map(learnerName).join(', ')}</p>}
+    </div>
+  }
+  return <article className="min-w-0 border-b pb-4 last:border-0 last:pb-0" data-testid={'booking-summary-' + bill.id}>
     <h3 className="break-words font-semibold text-[#153c85]">{names} · {courseNames[bill.course_types?.name || ''] || 'คอร์สเรียน'}</h3>
-    {bill.package_snapshot && <p className="mt-1 text-sm text-gray-600">แพ็กเกจ {bill.total_sessions} {family ? 'ชั่วโมง' : 'ครั้ง'} · {packageValidityDescription(bill.package_snapshot, data.serverNow, bill.package_expiry_estimated === false ? bill.package_expiry : null)}</p>}
-    <p className="mt-1 text-sm text-gray-600">{grouped.count ? `เลือกวันเรียนแล้ว ${grouped.count} รอบ · ${grouped.branches.size} สาขา` : 'ยังไม่ได้เลือกวันเรียน'}</p>
-    {[...grouped.branches].map(([branchId, rounds]) => <section key={branchId} className="mt-3 min-w-0 rounded-xl bg-gray-50 p-3">
-      <h4 className="break-words text-sm font-semibold text-[#153c85]">{branchNames.get(branchId) || 'ไม่มีข้อมูลชื่อสาขา'} · {rounds.length} รอบ</h4>
-      {(showAllRounds ? rounds : rounds.slice(0, 3)).map(renderRound)}
-      {!showAllRounds && rounds.length > 3 && <details className="mt-2 text-sm"><summary className="min-h-11 cursor-pointer py-2 font-semibold text-blue-700">ดูอีก {rounds.length - 3} รอบในสาขานี้</summary><div className="max-h-64 overflow-y-auto">{rounds.slice(3).map(renderRound)}</div></details>}
-    </section>)}
+    <p className="mt-1 break-words text-sm text-gray-600">{grouped.branches.size > 1 ? grouped.branches.size+' สาขา' : branchNames.get(rounds[0]?.session.branch_id || bill.branch_id) || bill.branches?.name || 'ไม่มีข้อมูลชื่อสาขา'}</p>
+    {bill.package_snapshot ? <><p className="mt-1 text-sm text-gray-600">ซื้อ {bill.total_sessions} {unit} · เลือกวันแล้ว {grouped.count} · คงเหลือ {Math.max(0,bill.total_sessions-grouped.count)}</p><p className="mt-1 text-xs text-gray-600" data-testid={'payment-package-expiry-'+bill.id}>{packageValidityDescription(bill.package_snapshot, data.serverNow, bill.package_expiry_estimated === false ? bill.package_expiry : null)}</p></> : <p className="mt-1 text-sm text-gray-600">{grouped.count} ครั้ง</p>}
+    {rounds.length ? <div className="mt-3 space-y-2">{(showAllRounds ? rounds : rounds.slice(0,3)).map(renderRound)}{!showAllRounds && rounds.length > 3 && <details><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-blue-700">ดูวันเรียนทั้งหมด ({rounds.length} รอบ)</summary><div className="max-h-64 space-y-2 overflow-y-auto">{rounds.slice(3).map(renderRound)}</div></details>}</div> : <p className="mt-2 text-sm text-gray-600">ยังไม่ได้เลือกวันเรียน</p>}
+    {bill.coupon_code && <p className="mt-3 break-words text-sm text-green-800" data-testid={'booking-coupon-'+bill.id}>โค้ด {bill.coupon_code}{bill.coupon_state === 'released' ? ' · ไม่ใช้ส่วนลดแล้ว' : ' · ลด ฿'+Number(bill.coupon_discount || 0).toLocaleString()}</p>}
     {showPrice && <p className="mt-3 flex flex-wrap justify-between gap-2 font-semibold"><span>ยอดรายการนี้</span><span>฿{Number(bill.total_price).toLocaleString()}</span></p>}
   </article>
 }

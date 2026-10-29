@@ -1,1 +1,7 @@
 Bank marks from https://github.com/omise/banks-logo (MIT). Bank trademarks belong to their respective owners. Downloaded 2026-10-22.
+
+BOOKING-UX-2, 2026-10-28:
+- scb.svg and bbl.svg retain the original white marks on the source palette backgrounds.
+- bay-contrast.svg is derived from bay.svg (same geometry; white foreground changed to #61431E for contrast on the source yellow #fec43b). Original bay.svg and MIT license retained.
+- ttb-color.png is the unmodified color mark served by the bank's official website: https://www.ttbbank.com/global/assets/img/media-img/logo-default.png (retrieved 2026-10-28). Bank trademark, used only to identify the configured receiving bank. This official asset is not covered by the Omise MIT license. Original ttb.svg retained.
+- Display alias metadata does not change bank/account identity, branch routing or saved settings.

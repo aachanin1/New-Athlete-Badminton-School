@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Copy, Loader2 } from 'lucide-react'
+import { Copy, Landmark, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
+import { getBankDisplay } from '@/lib/bank-display'
 import {
   PAYMENT_TRANSFER_INSTRUCTION, PAYMENT_TRANSFER_SETTING_KEY,
   normalizePaymentTransferSettings, paymentTransferReadToken, resolveBookingTransferAccounts,
@@ -18,6 +19,18 @@ const BANK_STYLE: Record<string, string> = {
   กรุงศรี: 'border-yellow-400 bg-yellow-50 text-yellow-950',
   TTB: 'border-orange-300 bg-orange-50 text-blue-950',
   'ธ.กรุงเทพ': 'border-blue-300 bg-blue-50 text-blue-950',
+}
+
+function BankIdentity({ bankName, centered = false }: { bankName: string; centered?: boolean }) {
+  const bank = getBankDisplay(bankName)
+  const [failedSource, setFailedSource] = useState<string | null>(null)
+  const showMark = bank.src !== null && failedSource !== bank.src
+  return <div className={`flex min-w-0 items-center gap-3 ${centered ? 'justify-center' : ''}`} data-testid="payment-bank-identity" data-bank-id={bank.id}>
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-black/10" style={{ backgroundColor: showMark ? bank.background : '#f1f5f9' }} aria-hidden="true">
+      {showMark && bank.src ? <Image src={bank.src} width={bank.width} height={bank.height} alt="" className="object-contain" onError={() => setFailedSource(bank.src)} /> : <Landmark className="h-6 w-6 text-slate-600" />}
+    </span>
+    <p className="min-w-0 break-words font-semibold">{bank.name}</p>
+  </div>
 }
 
 export function PaymentTransferCard({ account,compact=false }: { account: PaymentTransferDisplayCard;compact?:boolean }) {
@@ -37,9 +50,8 @@ export function PaymentTransferCard({ account,compact=false }: { account: Paymen
     } finally { setCopying(false) }
   }
   if(compact){
-    const bank=({SCB:{file:'scb',name:'ธนาคารไทยพาณิชย์',color:'#4e2e7f'},กรุงศรี:{file:'bay',name:'ธนาคารกรุงศรีอยุธยา',color:'#fec43b'},TTB:{file:'ttb',name:'ธนาคารทหารไทยธนชาต',color:'#ecf0f1'},'ธ.กรุงเทพ':{file:'bbl',name:'ธนาคารกรุงเทพ',color:'#1e4598'}} as Record<string,{file:string;name:string;color:string}>)[account.bankName]
     return <section className="min-w-0 rounded-2xl border bg-white p-4 text-center shadow-sm" data-testid="payment-transfer-card">
-      <div className="flex items-center justify-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full p-2" style={{backgroundColor:bank?.color||'#64748b'}}>{bank&&<Image src={'/banks/'+bank.file+'.svg'} width={28} height={28} alt=""/>}</span><p className="font-semibold">{bank?.name||account.bankName}</p></div>
+      <BankIdentity bankName={account.bankName} centered />
       <Button type="button" disabled={copying||!account.accountNumber} onClick={()=>void copy(false)} aria-label={'คัดลอกเลขบัญชี '+account.accountNumber} className="mx-auto mt-4 flex h-auto min-h-12 max-w-full gap-3 rounded-full bg-[#153c85] px-5 py-3 text-white hover:bg-blue-900"><span className="select-all break-all text-xl font-bold sm:text-2xl" data-testid="payment-transfer-number">{account.accountNumber}</span><Copy className="h-5 w-5 shrink-0"/></Button>
       <p className="mt-3 break-words text-sm text-gray-600" data-testid="payment-transfer-recipient">{account.accountName}</p>
       {account.branches.length>1&&<p className="mt-2 text-xs text-gray-500">สำหรับ {account.branches.map(b=>b.name).join(' · ')}</p>}
@@ -53,7 +65,7 @@ export function PaymentTransferCard({ account,compact=false }: { account: Paymen
       <p className="break-words text-sm font-semibold" data-testid="payment-transfer-branches">
         {account.branches.map(branch => branch.name).join(' · ') || 'ยังไม่ได้เลือกสาขา'}
       </p>
-      <p className="text-sm font-semibold">ธนาคาร {account.bankName || '—'}</p>
+      <BankIdentity bankName={account.bankName} />
       <div>
         <p className="text-xs">เลขบัญชี</p>
         <p className="select-all break-all font-mono text-2xl font-bold leading-relaxed" data-testid="payment-transfer-number">{account.accountNumber || '—'}</p>

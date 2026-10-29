@@ -631,7 +631,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         return
       }
 
-      setStep(['learner', 'branch'].includes(restoredDraft.step) ? 'calendar' : restoredDraft.step)
+      setStep(['learner', 'branch'].includes(restoredDraft.step) || (!isEditMode && restoredDraft.step === 'summary') ? 'calendar' : restoredDraft.step)
       if (restoredDraft.packageId && packages.some(p => p.id === restoredDraft.packageId)) setPackageId(restoredDraft.packageId)
       setCourseType(restoredDraft.courseType)
       setLearnerType(restoredDraft.learnerType)
@@ -929,14 +929,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         if (selectedCourseType.name === 'kids_group') throw task10RpcError(result.code || 'TASK10_UNAVAILABLE')
         throw new Error(result.error || 'คำนวณราคาไม่สำเร็จ')
       }
-      let preview = result as AuthoritativeBookingPreview
-      if (preview.mode === 'legacy' && couponOverride) {
-        preview = {
-          ...preview,
-          discountAmount: couponOverride.discountAmount,
-          totalPrice: Math.max(0, preview.grossPrice - couponOverride.discountAmount),
-        }
-      }
+      const preview = result as AuthoritativeBookingPreview
       if (controller.signal.aborted || previewFingerprintRef.current !== fingerprint) {
         throw new DOMException('Stale preview response', 'AbortError')
       }
@@ -949,6 +942,10 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         const failure = task10RpcError(cause instanceof Error && 'code' in cause ? String(cause.code) : 'TASK10_UNAVAILABLE')
         setPreviewFailure({ fingerprint, code: failure.code, message: failure.message })
         throw new Error(failure.message)
+      }
+      if (!controller.signal.aborted && previewFingerprintRef.current === fingerprint) {
+        setPreviewRecord(null)
+        setPreviewFailure({ fingerprint, code: 'PRICE_PREVIEW_FAILED', message: cause instanceof Error ? cause.message : 'คำนวณราคาไม่สำเร็จ' })
       }
       throw cause
     } finally {
@@ -1134,7 +1131,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
       const res = await fetch('/api/validate-coupon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode.trim(), totalAmount: displayedBasePrice }),
+        body: JSON.stringify({ code: couponCode.trim(), totalAmount: displayedBasePrice, courseTypeId: selectedCourseType?.id }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -1414,8 +1411,10 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
     }
   }
 
+  const submissionBusy = useRef(false)
   const handleSubmitBooking = async () => {
-    if (kidsPolicyBlocked) return
+    if (submissionBusy.current || uncertainCreate || kidsPolicyBlocked || (!isEditMode && !canGoNext())) return
+    submissionBusy.current = true
     setLoading(true)
     setError(null)
 
@@ -1423,6 +1422,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
     if (!courseTypeRow) {
       setError('ไม่พบประเภทคอร์สในระบบ')
       setLoading(false)
+      submissionBusy.current = false
       return
     }
 
@@ -1609,6 +1609,8 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         ? 'การเชื่อมต่อขาดระหว่างยืนยัน กรุณาตรวจผลคำขอเดิมก่อน'
         : 'ยังยืนยันผลการจองไม่ได้ กรุณาตรวจผลคำขอเดิมก่อน')
       setLoading(false)
+    } finally {
+      submissionBusy.current = false
     }
   }
 
@@ -1634,7 +1636,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>กู้คืนแบบร่างการจองล่าสุดแล้ว</span>
           </div>
-          <Button size="sm" variant="outline" onClick={clearStoredDraft} className="border-green-300 text-green-700 hover:bg-green-100">
+          <Button size="sm" variant="outline" disabled={loading || uncertainCreate} onClick={clearStoredDraft} className="border-green-300 text-green-700 hover:bg-green-100">
             ล้างแบบร่าง
           </Button>
         </div>
@@ -1797,6 +1799,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
           finally { setLoading(false) }
         }}>ตรวจสอบผลเดิม</Button>
       </div>}
+      <fieldset disabled={loading || uncertainCreate} className="min-w-0 border-0 p-0">
       {step === 'calendar' && (courseType === 'kids_group' && learnerChildren.length === 0 || showChildForm) && <form
         className={"mb-6 space-y-3 rounded-xl border p-5 " + (courseType==='kids_group'&&!learnerChildren.length?'border-red-500 bg-red-50':'border-orange-200 bg-orange-50')}
         onSubmit={async event => {
@@ -1827,7 +1830,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         <p className="font-semibold">ซื้อ {selectedPackage.quantity} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'} · เลือกแล้ว {(sessionsMap.self || []).length} · คงเหลือ {selectedPackage.quantity - (sessionsMap.self || []).length}</p>
         <p className="mt-2" data-testid="booking-package-expiry">{packageValidityDescription(selectedPackage, packageReference)}</p>
         {selectedPackage.quantity > 1 && <p className="mt-1 text-xs">{PACKAGE_DURATION_RULE}</p>}
-        {selectedPackage.quantity > 1 && <Button className="mt-3" variant="outline" disabled={!selectedBranchIds.length || courseType !== 'adult_group' && !privateSelfAttend && !selectedChildIds.length} onClick={() => { setSessionsMap({}); setNotice('ซื้อแพ็กเกจเต็มจำนวน และเก็บสิทธิไว้เลือกวันหลังยืนยันชำระแล้ว');setStep('summary') }}>ซื้อแพ็กเกจแล้วเลือกวันภายหลัง</Button>}
+        {selectedPackage.quantity > 1 && <Button className="mt-3" variant="outline" disabled={loading || uncertainCreate || !selectedBranchIds.length || courseType !== 'adult_group' && !privateSelfAttend && !selectedChildIds.length} onClick={() => { setSessionsMap({}); setNotice('ซื้อแพ็กเกจเต็มจำนวน และเก็บสิทธิไว้เลือกวันหลังยืนยันชำระแล้ว');if(isEditMode)setStep('summary') }}>ซื้อแพ็กเกจแล้วเลือกวันภายหลัง</Button>}
       </section>}
       {step === 'calendar' && hasCalendarLearner && selectedBranches.length > 0 && courseType && (
         <div className="space-y-4">
@@ -2038,7 +2041,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                         </p>
                       )}
                     </div>
-                    <p data-testid="booking-step4-total" className="text-2xl font-bold text-[#2748bf]">฿{finalPrice.toLocaleString()}</p>
+                    {isEditMode && <p data-testid="booking-step4-total" className="text-2xl font-bold text-[#2748bf]">฿{finalPrice.toLocaleString()}</p>}
                   </div>
                 )}
               </CardContent>
@@ -2047,8 +2050,29 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         </div>
       )}
 
-      {/* Step 5: Summary */}
-      {step === 'summary' && (
+      {!isEditMode && step === 'calendar' && hasCalendarLearner && selectedBranchIds.length > 0 && bookingSessionCount > 0 && (
+        <section className="mt-4 space-y-4 rounded-xl border bg-white p-4" data-testid="booking-checkout-total">
+          {displayedBasePrice > 0 && <div>
+            <label htmlFor="booking-coupon" className="mb-2 block text-sm font-medium">รหัสส่วนลด</label>
+            {appliedCoupon ? <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
+              <p className="min-w-0 break-words text-sm font-medium text-green-800">{appliedCoupon.code}{authoritativePreview ? ` · ลด ฿${displayedDiscountAmount.toLocaleString()}` : ' · กำลังตรวจส่วนลด'}</p>
+              <Button type="button" size="sm" variant="outline" aria-label="นำคูปองออก" disabled={loading || uncertainCreate} onClick={removeCoupon}>ไม่ใช้คูปอง</Button>
+            </div> : <div className="flex min-w-0 gap-2">
+              <input id="booking-coupon" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} placeholder="กรอกรหัสคูปอง" disabled={loading || uncertainCreate || couponLoading} className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2748bf]/30" />
+              <Button type="button" variant="outline" disabled={loading || uncertainCreate || couponLoading || previewLoading || !authoritativePreview || !couponCode.trim()} onClick={handleApplyCoupon}>{couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ใช้โค้ด'}</Button>
+            </div>}
+            {couponError && <p role="alert" className="mt-2 text-sm text-red-700">{couponError}</p>}
+          </div>}
+          {authoritativePreview ? <div className="space-y-2 border-t pt-3">
+            {appliedCoupon && <><p className="flex justify-between gap-2 text-sm text-gray-600"><span>ราคาก่อนส่วนลด</span><span>฿{displayedBasePrice.toLocaleString()}</span></p><p className="flex justify-between gap-2 text-sm text-green-700"><span>ส่วนลด {appliedCoupon.code}</span><span>−฿{displayedDiscountAmount.toLocaleString()}</span></p></>}
+            <p className="flex flex-wrap items-center justify-between gap-2 font-bold"><span>ยอดสุทธิ</span><span data-testid="booking-step4-total" className="text-3xl text-[#2748bf]">฿{finalPrice.toLocaleString()}</span></p>
+          </div> : <p role="status" className="text-sm text-blue-700">{pricingWaitMessage}</p>}
+          <p className="text-xs text-gray-600">{isZeroCharge ? 'ยืนยันการจองโดยไม่ต้องโอนเงินหรือแนบสลิป' : 'หลังยืนยัน กรุณาชำระและส่งสลิปภายใน 30 นาที'}</p>
+        </section>
+      )}
+
+      {/* Existing single-booking edit review; new bookings confirm from stage 2. */}
+      {isEditMode && step === 'summary' && (
         <div>
           {selectedPackage && (!isEditMode || editBooking?.package_snapshot) && <div className="mb-4 rounded-xl bg-blue-50 p-4 text-sm">
             ซื้อ {selectedPackage.quantity} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'} · เลือกวันแล้ว {(sessionsMap.self || []).length} · คงเหลือ {selectedPackage.quantity - (sessionsMap.self || []).length}
@@ -2211,20 +2235,21 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
       )}
 
       {step === 'calendar' && !canGoNext() && hasCalendarLearner && selectedBranchIds.length > 0 && !(allSelectedSessions.length === 0 && (courseType === 'kids_group' || selectedPackage?.quantity === 1)) && <p role="status" className="mt-5 text-sm font-medium text-red-700">{!hasCalendarLearner?'กรุณาเลือกผู้เรียน':!selectedBranchIds.length?'กรุณาเลือกสาขา':!allSelectedSessions.length&&(courseType==='kids_group'||selectedPackage?.quantity===1)?'กรุณาเลือกวันและรอบเรียน':'กรุณาตรวจข้อมูลวันเรียนที่เลือกก่อนดำเนินการต่อ'}</p>}
+      </fieldset>
       {/* Navigation */}
       <div className="flex justify-between mt-8">
         {isEditMode && step === 'calendar' ? (
-          <Button variant="outline" onClick={() => router.push('/dashboard/booking?payment=' + editBooking!.id)}>
+          <Button variant="outline" disabled={loading || uncertainCreate} onClick={() => router.push('/dashboard/booking?payment=' + editBooking!.id)}>
             <ArrowLeft className="h-4 w-4 mr-2" />กลับไปชำระเงิน
           </Button>
         ) : (
-          <Button variant="outline" onClick={goBack} disabled={isEditMode ? step === 'calendar' : currentStepIndex === 0}>
+          <Button variant="outline" onClick={goBack} disabled={loading || uncertainCreate || (isEditMode ? step === 'calendar' : currentStepIndex === 0)}>
             <ArrowLeft className="h-4 w-4 mr-2" />ย้อนกลับ
           </Button>
         )}
-        {step === 'summary' ? (
-          <Button data-testid="booking-confirm" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={uncertainCreate || loading || previewLoading || availabilityLoading || pricingPreviewPending || selectedAvailabilityIssues.length > 0}>
-            {loading || previewLoading || availabilityLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันยอดและเริ่มชำระเงิน'}</>}
+        {step === 'summary' || (!isEditMode && step === 'calendar') ? (
+          <Button data-testid="booking-confirm" className="h-auto min-h-11 max-w-[72%] whitespace-normal bg-[#f57e3b] px-4 py-3 text-white hover:bg-[#e06a2a]" onClick={handleSubmitBooking} disabled={uncertainCreate || loading || couponLoading || previewLoading || availabilityLoading || pricingPreviewPending || selectedAvailabilityIssues.length > 0 || (!isEditMode && (!canGoNext() || !authoritativePreview))}>
+            {loading || previewLoading || availabilityLoading ? <><Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4 shrink-0" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ยืนยันการจอง 0 บาท' : 'ยืนยันยอดและเริ่มชำระเงิน'}</>}
           </Button>
         ) : (
           <Button data-testid="booking-next" className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && (availabilityLoading || !authoritativeAvailability || selectedAvailabilityIssues.length > 0))))}>

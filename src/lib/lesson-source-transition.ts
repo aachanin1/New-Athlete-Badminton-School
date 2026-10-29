@@ -9,6 +9,9 @@ interface TransitionClient {
 }
 
 const walletMessages: Record<string, string> = {
+  BOOKING_UX_PRIVATE_HOUR_OVERLAP: 'บิล Private นี้มีรอบเรียนในเวลานี้แล้ว กรุณาเลือกรอบอื่นเพื่อไม่รวมสิทธิ์คนละชั่วโมง',
+  BOOKING_UX_PRIVATE_HOUR_BUSY: 'กำลังปรับรอบ Private ของบิลนี้ กรุณาอ่านข้อมูลล่าสุดแล้วลองใหม่',
+  BOOKING_UX_PRIVATE_UNIT_LINEAGE: 'ยังตรวจสิทธิ์ Private ของรอบนี้ไม่ครบ กรุณาอ่านข้อมูลใหม่หรือติดต่อผู้ดูแล',
   BRANCH_DATE_CLOSED: 'สาขาปิดในวันที่เลือก กรุณาเลือกวันหรือสาขาอื่น',
   LESSON_SOURCE_REASON_REQUIRED: 'กรุณาระบุเหตุผลการจัดการ',
   LESSON_SOURCE_ABSENCE_REQUIRED: 'ต้องมีผลเช็คขาดเรียนของผู้เรียนคนนี้ก่อนจัดชดเชย',
@@ -49,7 +52,7 @@ export async function transitionLessonSource<T>(client: TransitionClient, actorI
   if (error) {
     const code = ['40P01', '40001', '55P03', '57014'].includes(error.code || '')
       ? 'LESSON_SOURCE_RETRY'
-      : /(?:BRANCH_DATE|LESSON_SOURCE|LESSON_WALLET|TASK10)_[A-Z_]+/.exec(error.message)?.[0] || 'LESSON_SOURCE_FAILED'
+      : /(?:BOOKING_UX_PRIVATE|BRANCH_DATE|LESSON_SOURCE|LESSON_WALLET|TASK10)_[A-Z_]+/.exec(error.message)?.[0] || 'LESSON_SOURCE_FAILED'
     const status = code.startsWith('LESSON_WALLET_')
       ? code.endsWith('_NOT_FOUND') ? 404 : /(STALE|CONFLICT|AMBIGUOUS|UNAVAILABLE)/.test(code) ? 409 : /(EVIDENCE|INVALID)/.test(code) ? 422 : 400
       : /UNAUTHORIZED|FORBIDDEN/.test(code) ? 403

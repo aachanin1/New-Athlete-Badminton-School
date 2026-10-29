@@ -1,0 +1,22 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import assert from 'node:assert/strict'
+import {createHash} from 'node:crypto'
+import {spawnSync} from 'node:child_process'
+const root=path.resolve('.playwright/booking-ux-2/revision-private-wallet-20261029')
+const upgrade=process.argv.includes('--upgrade')
+if(upgrade){process.env.LESSON_SOURCE_RUN_MANIFEST=path.resolve('.playwright/booking-ux-upgrade-1/run.json');process.env.TASK10_DISPOSABLE_TARGET=path.resolve('.playwright/booking-ux-upgrade-1/target.json')}
+const {run,sql,q}=await import('../tests/booking-ux/runtime.mjs')
+const read=s=>JSON.parse(sql(s)),sha=(v,algo='sha256')=>createHash(algo).update(v).digest('hex')
+const schema=read("SELECT jsonb_object_agg(oid::regprocedure::text,jsonb_build_object('hash',md5(replace(pg_get_functiondef(oid),chr(13)||chr(10),chr(10))),'acl',proacl,'config',proconfig)) FROM pg_proc WHERE pronamespace='public'::regnamespace"),migrations=read('SELECT jsonb_agg(version ORDER BY version) FROM supabase_migrations.schema_migrations'),migration=fs.readFileSync('supabase/migrations/20261029060529_booking_ux_private_unit_attendees_v6.sql'),ledger=read("SELECT jsonb_build_object('version',version,'name',name,'n',cardinality(statements),'md5',md5(array_to_string(statements,E'\\n'))) FROM supabase_migrations.schema_migrations WHERE version='20261029060529'")
+assert.equal(migrations.length,88);assert.equal(Object.keys(schema).length,421);assert.equal(ledger.n,1);assert.equal(ledger.md5,sha(migration,'md5'))
+const previous=JSON.parse(fs.readFileSync(root+'/migration-applied.json'));assert.deepEqual(schema,previous.schema);assert.equal(sha(migration),previous.migrationSha)
+const evidence={pass:true,at:new Date().toISOString(),target:run.target,runId:run.runId,schema,migrations,ledger,migrationSha:sha(migration),testDefinitionSha256:sha(fs.readFileSync(import.meta.filename))}
+if(!upgrade){
+ const baseline=JSON.parse(fs.readFileSync('.playwright/booking-ux-2/baseline.json')),hashes={};for(const [table,expected]of Object.entries(baseline.hashes)){const newActors=`SELECT id FROM profiles WHERE created_at>=${q(baseline.at)}::timestamptz`,where=['bookings','payments','coupon_usages','progressive_coupon_reservations'].includes(table)?`WHERE user_id NOT IN(${newActors})`:['booking_sessions','booking_package_units'].includes(table)?`WHERE booking_id IN(SELECT id FROM bookings WHERE user_id NOT IN(${newActors}))`:'';const actual=sql(`SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY id)::text,'')) FROM ${table} t ${where}`);hashes[table]={expected,actual};assert.equal(actual,expected,'Pre-existing '+table)}
+ const controls=read("SELECT jsonb_build_object('enabled',(SELECT enabled FROM booking_ux_control LIMIT 1),'policy',task10_policy_status_v1(),'unpaidConsumed',(SELECT count(*) FROM progressive_coupon_reservations r JOIN bookings b ON b.id=r.booking_id WHERE r.status='consumed' AND b.status NOT IN('paid','verified'))) ");assert.equal(controls.enabled,true);assert.equal(controls.policy.state,'active');assert.equal(controls.unpaidConsumed,0)
+ evidence.protectedHashes=hashes;evidence.controls=controls
+ const cli='C:/Users/aacha/AppData/Local/npm-cache/_npx/1517203cdeef2779/node_modules/@supabase/cli-windows-x64/bin/supabase.exe'
+ for(const [id,args]of [['lint',['db','lint','--local','--level','error','--output','json']],['advisors',['db','advisors','--local','--type','security','--level','error','--fail-on','none','--output','json']]]){const r=spawnSync(cli,[...args,'--workdir',run.target.workdir],{encoding:'utf8',windowsHide:true});fs.writeFileSync(root+'/db-'+id+'-final.json',r.stdout||'');fs.writeFileSync(root+'/db-'+id+'-final.stderr.log',r.stderr||'');assert.equal(r.status,0,id+' command '+r.stderr);if(id==='lint'){const actual=JSON.parse(r.stdout),old=JSON.parse(fs.readFileSync('.playwright/booking-ux-2/revision-participants-20261029/db-lint-final.json'));assert.deepEqual(actual,old,'New DB lint finding');evidence.lint={inheritedOnly:true,count:actual.length}}else{assert.match(r.stderr,/No issues found/);evidence.securityAdvisorErrorLevel='No issues found'}}
+}
+fs.writeFileSync(root+'/'+(upgrade?'final-upgrade-schema.json':'final-schema-preservation.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify({pass:true,target:run.target.project,functions:Object.keys(schema).length,migrations:migrations.length,oldHashes:evidence.protectedHashes?Object.keys(evidence.protectedHashes).length:undefined,lint:evidence.lint,controls:evidence.controls}))

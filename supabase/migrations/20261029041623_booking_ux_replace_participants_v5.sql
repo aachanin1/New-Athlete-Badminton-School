@@ -1,0 +1,70 @@
+BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL statement_timeout='40s';
+SELECT pg_advisory_xact_lock(10,1);
+
+-- Explicit unpaid edits may replace the owned participant set. Keep old
+-- clients and the accepted-receipt/payment fence; change no historical rows.
+CREATE FUNCTION public.booking_ux_edit_participants_v5(p_actor uuid,p_booking uuid,p_edit jsonb,p_request uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE b bookings%ROWTYPE;c text;members jsonb;original_members jsonb;s jsonb:=p_edit->'sessions';prior_write text;summary_child uuid;
+BEGIN
+ IF NOT p_edit ? 'participants' THEN RETURN;END IF;
+ SELECT * INTO b FROM bookings WHERE id=p_booking AND user_id=p_actor FOR UPDATE;
+ IF NOT FOUND OR b.status::text<>'pending_payment' OR public.task10_booking_due_v1(b.id)
+  OR public.task10_has_accepted_receipt_v1(b.id) THEN RAISE EXCEPTION 'BOOKING_UX_SET_CHANGED';END IF;
+ SELECT name::text INTO c FROM course_types WHERE id=b.course_type_id;
+ IF jsonb_typeof(p_edit->'participants') IS DISTINCT FROM 'array' OR jsonb_typeof(s) IS DISTINCT FROM 'array'
+  OR jsonb_array_length(p_edit->'participants') NOT BETWEEN 1 AND (CASE WHEN c='kids_group' THEN 500 ELSE 20 END)
+ THEN RAISE EXCEPTION 'BOOKING_UX_INVALID_LEARNER';END IF;
+ SELECT jsonb_agg(CASE WHEN x='null'::jsonb THEN 'null'::jsonb ELSE to_jsonb((x#>>'{}')::uuid) END) INTO members
+  FROM jsonb_array_elements(p_edit->'participants')x;
+ IF (SELECT count(*)<>count(DISTINCT x) FROM jsonb_array_elements(members)x) THEN RAISE EXCEPTION 'BOOKING_UX_INVALID_LEARNER';END IF;
+ IF c='adult_group' THEN
+  IF members<>'[null]'::jsonb THEN RAISE EXCEPTION 'BOOKING_UX_INVALID_LEARNER';END IF;RETURN;
+ END IF;
+ IF c NOT IN ('kids_group','private') OR c='private' AND b.package_snapshot IS NULL THEN RAISE EXCEPTION 'BOOKING_UX_REFRESH_REQUIRED';END IF;
+ IF c='kids_group' AND (b.learner_type::text<>'child' OR members@>'[null]'::jsonb) THEN RAISE EXCEPTION 'BOOKING_UX_INVALID_LEARNER';END IF;
+ PERFORM ch.id FROM children ch WHERE ch.id IN(SELECT (x#>>'{}')::uuid FROM jsonb_array_elements(members)x WHERE x<>'null'::jsonb)
+  AND ch.parent_id=p_actor ORDER BY ch.id FOR SHARE;
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(members)x WHERE x<>'null'::jsonb
+  AND NOT EXISTS(SELECT 1 FROM children ch WHERE ch.id=(x#>>'{}')::uuid AND ch.parent_id=p_actor)) THEN RAISE EXCEPTION 'BOOKING_UX_INVALID_LEARNER';END IF;
+ IF c='private' THEN
+  original_members:=b.package_participants;
+  IF jsonb_typeof(original_members) IS DISTINCT FROM 'array' OR jsonb_array_length(original_members)=0 THEN RAISE EXCEPTION 'BOOKING_UX_REFRESH_REQUIRED';END IF;
+ ELSE
+  SELECT coalesce(jsonb_agg(DISTINCT to_jsonb(child_id)) FILTER(WHERE child_id IS NOT NULL),'[]') INTO original_members
+   FROM booking_sessions WHERE booking_id=b.id AND status::text NOT IN ('cancelled','walleted','rescheduled');
+  IF b.child_id IS NOT NULL AND NOT original_members@>jsonb_build_array(b.child_id) THEN original_members:=original_members||jsonb_build_array(b.child_id);END IF;
+ END IF;
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(s)x WHERE NOT members@>jsonb_build_array((x->>'childId')::uuid)) THEN RAISE EXCEPTION 'BOOKING_UX_INVALID_LEARNER';END IF;
+ IF c='kids_group' AND EXISTS(SELECT 1 FROM jsonb_array_elements(members)m WHERE NOT EXISTS
+  (SELECT 1 FROM jsonb_array_elements(s)x WHERE (x->>'childId')::uuid=(m#>>'{}')::uuid)) THEN RAISE EXCEPTION 'BOOKING_UX_LEARNER_ROUND_REQUIRED';END IF;
+ -- Change only the summary to the already validated selected identity, after
+ -- original-set validation and inside the preview/save subtransaction. This
+ -- also keeps the Legacy Kids path (which does not derive a summary) correct.
+ -- Both real writers still validate every requested learner/session.
+ IF c='kids_group' THEN
+  summary_child:=CASE WHEN jsonb_array_length(members)=1 THEN (members->>0)::uuid END;
+  IF b.child_id IS DISTINCT FROM summary_child THEN
+   prior_write:=current_setting('task10.booking_write',true);PERFORM set_config('task10.booking_write','authorized',true);
+   UPDATE bookings SET child_id=summary_child WHERE id=b.id;
+   PERFORM set_config('task10.booking_write',coalesce(prior_write,''),true);
+  END IF;
+ END IF;
+ IF NOT (original_members@>members AND members@>original_members) THEN
+  INSERT INTO activity_logs(user_id,action,entity_type,entity_id,details)
+   VALUES(p_actor,'booking_edit_participants_changed','booking',b.id,jsonb_build_object('before',original_members,'after',members,'requestId',p_request));
+ END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.booking_ux_edit_participants_v5(uuid,uuid,jsonb,uuid) FROM PUBLIC,anon,authenticated,service_role;
+
+DO $patch$
+DECLARE d text;a text:='public.booking_ux_edit_learners_v4(p_actor,(item->>''id'')::uuid,item,p_request)';
+BEGIN
+ SELECT pg_get_functiondef('public.booking_ux_edit_set_v1(uuid,uuid,jsonb,boolean)'::regprocedure) INTO d;
+ IF (length(d)-length(replace(d,a,'')))/length(a)<>1 THEN RAISE EXCEPTION 'PARTICIPANT_EDIT_V5_TRANSACTION_DRIFT';END IF;
+ EXECUTE replace(d,a,'public.booking_ux_edit_participants_v5(p_actor,(item->>''id'')::uuid,item,p_request)');
+END $patch$;
+NOTIFY pgrst,'reload schema';
+COMMIT;

@@ -99,14 +99,18 @@ export async function GET(request: NextRequest) {
     }
     if (bookings.length > 100) throw new Error('BOOKING_UX_SCOPE_LIMIT')
     const ids = bookings.map(b => b.id), scopeIds = [...new Set(bookings.map(b => b.pricing_scope_id).filter((v): v is string => Boolean(v)))]
-    const [life, sessions, payments, scopes, batches] = await Promise.all([
+    const [life, sessions, payments, scopes, batches, coupons, legacyCoupons] = await Promise.all([
       loadBookingPaymentLifecycle(admin, ids),
       ids.length ? admin.from('booking_sessions').select('id,booking_id,date,start_time,end_time,branch_id,child_id,status,children(full_name,nickname),branches(name)').in('booking_id', ids).order('date').limit(2001) : { data: [], error: null },
       ids.length ? admin.from('payments').select('id,booking_id,status,notes,verified_at,created_at,receipts:task10_accepted_receipts(request_id)').in('booking_id', ids).order('created_at', { ascending: false }).limit(1001) : { data: [], error: null },
       scopeIds.length ? admin.from('booking_pricing_scopes').select('id,revision').in('id', scopeIds) : { data: [], error: null },
       scopeIds.length ? admin.from('progressive_payment_batches').select('id,pricing_scope_id,status,total_amount,prepared_expires_at,created_at,rejection_reason,upload_recorded_at,slipok_response_code,progressive_payment_batch_bookings(booking_id)').eq('user_id', user.id).in('pricing_scope_id', scopeIds).in('status', ['prepared', 'submitted', 'under_review', 'rejected']).order('created_at', { ascending: false }).limit(101) : { data: [], error: null },
+      ids.length ? db.from('progressive_coupon_reservations').select('booking_id,coupon_code_snapshot,gross_price_snapshot,discount_amount_snapshot,status,coupons(code)').eq('user_id',user.id).in('booking_id',ids) : { data: [], error: null },
+      ids.length ? db.from('coupon_usages').select('booking_id,discount_amount,coupons(code)').eq('user_id',user.id).in('booking_id',ids) : { data: [], error: null },
     ])
-    if (sessions.error || payments.error || scopes.error || batches.error || (sessions.data?.length || 0) > 2000 || (payments.data?.length || 0) > 1000 || (batches.data?.length || 0) > 100) throw new Error('BOOKING_UX_READ_FAILED')
+    if (sessions.error || payments.error || scopes.error || batches.error || coupons.error || legacyCoupons.error || (sessions.data?.length || 0) > 2000 || (payments.data?.length || 0) > 1000 || (batches.data?.length || 0) > 100) throw new Error('BOOKING_UX_READ_FAILED')
+    const couponMap = new Map((coupons.data || []).map(row => [row.booking_id, row]))
+    const legacyCouponMap = new Map((legacyCoupons.data || []).map(row => [row.booking_id, row]))
     let editor = null
     if(request.nextUrl.searchParams.get('editor')==='1' && (id || legacyIds) && ids.length){
       const [token,templates,closures]=await Promise.all([checkoutRpc<string>('booking_ux_set_token_v1',{p_actor:user.id,p_ids:ids}),admin.from('schedule_templates').select('id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active,notes,branches(slug),course_types(name)').eq('is_active',true),readFutureBranchDateClosures(admin)])
@@ -125,7 +129,15 @@ export async function GET(request: NextRequest) {
     }))
     const invalidBills = new Set<string>()
     for (const session of sessions.data || []) if (!['cancelled', 'walleted', 'rescheduled'].includes(session.status) && !packageRoundWithinExpiry(expiryByBill.get(session.booking_id)?.expiry, session.date, session.end_time)) invalidBills.add(session.booking_id)
-    return NextResponse.json({ editor, bookings: bookings.map(b => ({ ...b, lifecycle: life.get(b.id), package_expiry: expiryByBill.get(b.id)?.expiry, package_expiry_estimated: expiryByBill.get(b.id)?.estimated, package_dates_valid: !invalidBills.has(b.id) })), sessions: sessions.data, payments: payments.data, scopes: scopes.data, batches: batches.data,
+    return NextResponse.json({ editor, bookings: bookings.map(b => {
+      const coupon = couponMap.get(b.id)
+      const legacyCoupon = legacyCouponMap.get(b.id)
+      const terms = coupon?.coupons as unknown as { code?: string } | null
+      const legacyTerms = legacyCoupon?.coupons as unknown as { code?: string } | null
+      const discount = coupon ? coupon.status !== 'released' ? Number(coupon.discount_amount_snapshot) : 0 : Number(legacyCoupon?.discount_amount || 0)
+      return { ...b, coupon_code: coupon?.coupon_code_snapshot || terms?.code || legacyTerms?.code || null, coupon_gross: coupon && coupon.status !== 'released' ? Number(coupon.gross_price_snapshot) : Number(b.total_price) + discount, coupon_discount: discount, coupon_state: coupon?.status || null,
+        lifecycle: life.get(b.id), package_expiry: expiryByBill.get(b.id)?.expiry, package_expiry_estimated: expiryByBill.get(b.id)?.estimated, package_dates_valid: !invalidBills.has(b.id) }
+    }), sessions: sessions.data, payments: payments.data, scopes: scopes.data, batches: batches.data,
       transferSettings: normalizePaymentTransferSettings(setting.data?.value, branches.data || []), branches: branches.data, learners:learners.data, userName:profile.data?.full_name||'ตนเอง', serverNow }, { headers: privateHeaders })
   } catch (error) { return NextResponse.json({ error: checkoutError(error) }, { status: 503 }) }
 }

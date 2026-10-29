@@ -7,6 +7,7 @@ import { CheckCircle2, Clock, Loader2, Upload } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { BookingSlipPicker } from './booking-slip-picker'
 import { BookingOrderReferences } from './booking-order-references'
+import { BookingBillSummary } from './booking-bill-summary'
 import { bookingHistoryHref } from '@/lib/booking-reference'
 import { formatLearnerDisplayName } from '@/lib/learner-display-name'
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
@@ -18,13 +19,14 @@ import type { BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import { PaymentTransferInstructions } from '@/components/payments/payment-transfer-card'
 import type { PaymentBranch, PaymentTransferSettings } from '@/lib/payment-settings'
 import { resolveBookingTransferAccounts } from '@/lib/payment-settings'
-import { PACKAGE_DATE_ERROR, packageValidityDescription } from '@/lib/booking-package-validity'
+import { PACKAGE_DATE_ERROR } from '@/lib/booking-package-validity'
 
 export interface Bill {
   id: string; status: string; total_price: number; total_sessions: number; branch_id: string; pricing_scope_id: string | null
   checkout_version?: number; package_snapshot?: { quantity: number; validity_months: number } | null
   package_expiry?: string | null; package_expiry_estimated?: boolean; package_dates_valid?: boolean
   package_participants?:Array<string|null>|null
+  coupon_code?:string|null;coupon_gross?:number;coupon_discount?:number;coupon_state?:'reserved'|'consumed'|'released'|null
   course_type_id:string;month:number;year:number;child_id:string|null
   lifecycle: BookingPaymentLifecycle; branches: {name:string} | null; children: {full_name:string;nickname:string|null} | null
   course_types: {name:string} | null
@@ -40,11 +42,12 @@ export interface PaymentState {
 
 const courseName:Record<string,string>={kids_group:'กลุ่มเด็ก',adult_group:'กลุ่มผู้ใหญ่',private:'Private'}
 
-export function BookingPaymentClient({ bookingId,bulkIds }: {bookingId?:string;bulkIds?:string[]}) {
+export function BookingPaymentClient({ bookingId,bulkIds,initialEditing=false }: {bookingId?:string;bulkIds?:string[];initialEditing?:boolean}) {
   const bulkKey=bulkIds?.join(','),bulkLegacy=Boolean(bulkKey)
   const paymentView=Boolean(bookingId||bulkLegacy)
   const router=useRouter(),mutation=useRef(false)
-  const [editing,setEditing]=useState(false)
+  const [editing,setEditing]=useState(initialEditing)
+  useEffect(()=>setEditing(initialEditing),[initialEditing,bookingId,bulkKey])
   const cancelRequest=useRef<{id:string;input:unknown}|null>(null)
   const [cancelPending,setCancelPending]=useState(false)
   const cancelStorageKey='nabs:set-cancel-v1:'+(bookingId||bulkKey||'list')
@@ -224,7 +227,9 @@ export function BookingPaymentClient({ bookingId,bulkIds }: {bookingId?:string;b
     finally{if(current===generation.current){mutation.current=false;setBusy(false)}}
     if(failed)await readback()
   }
-  if(editing)return <div className="space-y-6"><div><h1 className="text-2xl font-bold text-[#153c85]">แก้ไขวันจองเรียน</h1><p className="text-gray-500 text-sm mt-1">ตรวจวันเรียนและสรุปก่อนกลับไปชำระเงิน</p></div><BookingSetEditor url={editorUrl} onBack={()=>setEditing(false)} onDone={()=>{setEditing(false);setFile(null);void readback();router.refresh()}}/></div>
+  const canEdit=bills.length>0&&bills.every(b=>b.status==='pending_payment'&&!b.lifecycle?.due&&!b.lifecycle?.acceptedReceipt)&&!expired&&!verified&&!received&&!returned&&!elapsed
+  const closeEditor=()=>{setEditing(false);if(initialEditing&&bookingId)router.replace('/dashboard/booking?payment='+encodeURIComponent(bookingId))}
+  if(editing&&data&&canEdit)return <div className="space-y-6"><div><h1 className="text-2xl font-bold text-[#153c85]">แก้ไขวันเรียน / คูปอง</h1><p className="text-gray-500 text-sm mt-1">เลือกวันเรียนและตรวจยอด แล้วบันทึกกลับไปชำระเงิน</p></div><BookingSetEditor url={editorUrl} onBack={closeEditor} onDone={async()=>{setFile(null);const latest=await readback();if(!latest)throw Error('บันทึกแล้ว แต่ยังอ่านยอดล่าสุดไม่สำเร็จ กรุณาตรวจผลคำขอเดิม');closeEditor();router.refresh()}}/></div>
   return <div className="mx-auto max-w-3xl space-y-5" data-testid="booking-payment">
     {paymentView?<ol className="grid grid-cols-3 gap-2" aria-label="ขั้นตอนการจอง">{BOOKING_STAGES.map((s,i)=><li key={s} className={'rounded-xl px-2 py-3 text-center text-xs font-semibold '+(i===2?'bg-[#153c85] text-white':'bg-blue-50 text-blue-800')}>{i<2?'✓':3} {s}</li>)}</ol>:<h1 className="text-2xl font-bold text-[#153c85]">ชำระเงินที่ค้าง</h1>}
     {error&&<div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">{error}<Button variant="outline" className="mt-3 block" disabled={busy} onClick={()=>void readback()}>ตรวจสอบผลเดิม</Button>{cancelPending&&!expired&&!received&&<Button variant="outline" className="mt-3 block" disabled={busy||elapsed} onClick={()=>void cancelSet()}>ลองยกเลิกคำขอเดิมอีกครั้ง</Button>}</div>}
@@ -235,9 +240,18 @@ export function BookingPaymentClient({ bookingId,bulkIds }: {bookingId?:string;b
         expired?<section className="rounded-xl border border-rose-200 bg-rose-50 p-5"><h1 className="text-xl font-bold">{mixedClosed?'บางรายการในชุดนี้ปิดแล้ว':expiredByDeadline?'รายการหมดเวลาแล้ว':'รายการยกเลิกแล้ว'}</h1><p className="mt-2 text-sm">{mixedClosed?'รายการอื่นยังมีสถานะและกำหนดเวลาเดิม กรุณาเปิดยอดล่าสุดก่อนทำต่อ':'หากยังไม่ได้โอน เริ่มจองใหม่และเลือกวันเรียนใหม่ได้ ข้อมูลผู้เรียนที่บันทึกไว้ยังอยู่'}</p>{mixedClosed?<Link className="mt-4 inline-block rounded-lg bg-[#153c85] px-5 py-3 font-semibold text-white" href={bulkLegacy?'/dashboard/payments?legacy='+openBills.map(b=>b.id).join(','):'/dashboard/payments'}>ตรวจรายการที่ยังเปิดอยู่</Link>:<Link className="mt-4 inline-block rounded-lg bg-orange-500 px-5 py-3 font-semibold text-white" href="/dashboard/booking">ยังไม่ได้โอน — เริ่มจองใหม่</Link>}</section>:
         received?<section role="status" className="rounded-xl border border-blue-200 bg-blue-50 p-5"><h1 className="text-xl font-bold">{uploaded?'บันทึกสลิปแล้ว ดำเนินการตรวจต่อได้':'รับสลิปแล้ว ยังตรวจยืนยันไม่สำเร็จ'}</h1><p className="mt-2 text-sm">{uploaded?'ดำเนินการต่อด้วยสลิปเดิมได้ ไม่ต้องเลือกรูปใหม่หรือโอนซ้ำ':checkMessages.join(' · ')}</p>{recheckable&&<Button className="mt-4 mr-3 min-h-12" disabled={busy||unknown} onClick={()=>void retryVerification()}>ลองตรวจสลิปเดิมอีกครั้ง</Button>}{uploaded&&<Button className="mt-4 mr-3" disabled={busy||unknown||!ready} onClick={()=>void send()}>ดำเนินการตรวจสลิปเดิมต่อ</Button>}<Button className="mt-4" variant="outline" disabled={busy} onClick={()=>void readback()}>ตรวจสอบผลเดิม</Button></section>:
         returned?<section role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-5" data-testid="payment-returned"><h1 className="text-xl font-bold">กรุณาแก้สลิป</h1>{returnedReasons.map(reason=><p key={reason} className="mt-2 whitespace-pre-wrap break-words">เหตุผล: {reason}</p>)}<p className="mt-2 text-sm">{canSubmit?'เลือกรูปสลิปของการโอนรายการเดิมที่ถูกต้อง แล้วส่งตรวจอีกครั้งได้ด้านล่าง':'ยังรับสลิปใหม่ไม่ได้ กรุณาตรวจผลรายการเดิมก่อน'} กรุณาอย่าโอนซ้ำ</p></section>:null}
-      <section className="space-y-4 rounded-2xl border bg-white p-5" data-testid="payment-order-total"><h2 className="text-xl font-bold text-[#153c85]">{verified?'รายการที่ยืนยันแล้ว':expired?'สถานะชุดรายการเดิม':returned?'รายการที่ต้องแก้หลักฐาน':'ชำระเงิน'}</h2><BookingOrderReferences ids={bills.map(b=>b.id)} />{expired?<div className="space-y-3 text-sm">{bills.map(b=><div key={b.id}><BookingOrderReferences ids={[b.id]} visibleIds={bills.map(x=>x.id)}/><p>{recovery(b).kind==='closed'?'ปิดแล้ว':recovery(b).kind==='verified'?'ยืนยันแล้ว':'ยังเปิดอยู่ — ตรวจยอดล่าสุดก่อนทำต่อ'} · ฿{Number(b.total_price).toLocaleString()}</p></div>)}</div>:<p className="flex flex-wrap items-center justify-between gap-2 text-lg font-bold"><span>{verified?'ชำระแล้ว':returned?'ยอดรายการเดิม':received?'ยอดส่งตรวจสอบ':unknown?'ยอดรายการที่กำลังตรวจผล':'ยอดที่ต้องชำระ'}</span><span className="text-3xl text-[#2748bf]">฿{total.toLocaleString()}</span></p>}{!expired&&!verified&&!received&&!returned&&<Button variant="outline" className="min-h-11 w-full border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100" disabled={busy||unknown||elapsed} onClick={()=>{setFile(null);setEditing(true)}}><Pencil className="mr-2 h-4 w-4"/>แก้ไขวันเรียน{bills.length>1?'ทั้งชุด':''}</Button>}<Link className="block text-center text-sm text-blue-700 underline" href="/dashboard/payments">เลือกรายการค้างอื่น</Link></section>
+      <section className="space-y-4 rounded-2xl border bg-white p-5" data-testid="payment-order-total">
+        <div className="space-y-2"><h2 className="text-xl font-bold text-[#153c85]">{verified?'รายการที่ยืนยันแล้ว':expired?'สถานะชุดรายการเดิม':returned?'รายการที่ต้องแก้หลักฐาน':'สรุปและชำระเงิน'}</h2><BookingOrderReferences ids={bills.map(b=>b.id)} /></div>
+        {data && <div className="space-y-4" data-testid="payment-booking-summary">{bills.map(b => <BookingBillSummary key={b.id} bill={b} sessions={sessionsMap[b.id] || []} data={data} showPrice={bills.length > 1} />)}</div>}
+        {expired ? <div className="space-y-3 text-sm">{bills.map(b=><div key={b.id}><BookingOrderReferences ids={[b.id]} visibleIds={bills.map(x=>x.id)}/><p>{recovery(b).kind==='closed'?'ปิดแล้ว':recovery(b).kind==='verified'?'ยืนยันแล้ว':'ยังเปิดอยู่ — ตรวจยอดล่าสุดก่อนทำต่อ'} · ฿{Number(b.total_price).toLocaleString()}</p></div>)}</div> : <div className="space-y-2 border-t pt-4">
+          {bills.some(b => Number(b.coupon_discount) > 0) && <><p className="flex justify-between gap-2 text-sm text-gray-600"><span>ราคาก่อนส่วนลด{bills.length > 1?'ทั้งชุด':''}</span><span>฿{bills.reduce((n,b)=>n+Number(b.coupon_gross ?? b.total_price),0).toLocaleString()}</span></p><p className="flex justify-between gap-2 text-sm text-green-700"><span>ส่วนลดคูปอง</span><span>−฿{bills.reduce((n,b)=>n+Number(b.coupon_discount || 0),0).toLocaleString()}</span></p></>}
+          <p className="flex flex-wrap items-center justify-between gap-2 text-lg font-bold"><span>{verified?'ชำระแล้ว':returned?'ยอดรายการเดิม':received?'ยอดส่งตรวจสอบ':unknown?'ยอดรายการที่กำลังตรวจผล':'ยอดสุทธิที่ต้องชำระ'}</span><span className="text-3xl text-[#2748bf]" data-testid="payment-net-total">฿{total.toLocaleString()}</span></p>
+        </div>}
+        {canEdit&&<Button variant="outline" className="min-h-11 w-full border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100" disabled={busy||unknown||elapsed} onClick={()=>{setFile(null);setEditing(true)}}><Pencil className="mr-2 h-4 w-4"/>แก้ไขวันเรียน / คูปอง{bills.length>1?'ทั้งชุด':''}</Button>}
+        <Link className="block text-center text-sm text-blue-700 underline" href="/dashboard/payments">เลือกรายการค้างอื่น</Link>
+      </section>
       {!expired&&!verified&&!received&&invalidPackageDates&&<p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm" data-testid="payment-package-expiry-error">{PACKAGE_DATE_ERROR} กด “แก้ไขวันเรียน” ก่อนชำระเงิน</p>}
-      {data&&bills.filter(b=>b.package_snapshot&&b.package_snapshot.quantity>1).map(b=><p key={b.id} className="rounded-xl bg-blue-50 p-3 text-sm" data-testid={'payment-package-expiry-'+b.id}>{courseName[b.course_types?.name||'']} {b.total_sessions} {b.course_types?.name==='private'?'ชั่วโมง':'ครั้ง'} · {packageValidityDescription(b.package_snapshot!,data.serverNow,b.package_expiry_estimated===false?b.package_expiry:null)}</p>)}
+
       {!expired&&!verified&&!received&&!invalidPackageDates&&!unknown&&canSubmit&&<section className="space-y-5 rounded-2xl border bg-white p-5">
         {returned?<p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">ระบบรับสลิปครั้งแรกทันเวลาแล้ว แก้สลิปในรายการเดิมได้ โดยไม่ต้องเริ่มจองหรือโอนใหม่</p>:<div className="flex items-center justify-between gap-3 rounded-xl bg-orange-50 p-4"><p className="font-semibold">โอนและส่งสลิปภายใน</p><p className="flex items-center gap-2 text-2xl font-bold text-orange-700" data-testid="payment-countdown"><Clock className="h-5 w-5"/>{paymentTimeLeft(deadline,now)||'กำหนดตามรายการเดิม'}</p></div>}
         <h2 className="font-bold">{returned?'1. ตรวจยอดรายการเดิม':'1. โอนเงิน'} ฿{total.toLocaleString()}</h2>

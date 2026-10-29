@@ -15,11 +15,11 @@ export async function GET(request:NextRequest) {
       const month=request.nextUrl.searchParams.get('month')||''
       if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||Number(month.slice(0,4))<2000||Number(month.slice(0,4))>2200)return NextResponse.json({error:'เดือนที่เลือกไม่ถูกต้อง'},{status:400})
       const next=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5)),1)).toISOString().slice(0,10)
-      const sessions=await admin.from('booking_sessions').select('id,date,start_time,end_time,child_id,bookings!inner(user_id,status)',{count:'exact'})
+      const sessions=await admin.from('booking_sessions').select('id,booking_id,branch_id,date,start_time,end_time,child_id,bookings!inner(user_id,status)',{count:'exact'})
         .eq('bookings.user_id',user.id).in('bookings.status',['pending_payment','paid','verified'])
         .gte('date',month+'-01').lt('date',next).not('status','in','(rescheduled,walleted)').is('cancelled_at',null).order('id').limit(2001)
       if(sessions.error||(sessions.data?.length||0)>2000||sessions.count!==(sessions.data?.length||0))throw Error('BOOKING_UX_READ_FAILED')
-      return NextResponse.json({month,sessions:(sessions.data||[]).map(s=>({id:s.id,date:s.date,start:s.start_time,end:s.end_time,childId:s.child_id}))},{headers:{'Cache-Control':'private, no-store'}})
+      return NextResponse.json({month,sessions:(sessions.data||[]).map(s=>({id:s.id,bookingId:s.booking_id,branchId:s.branch_id,date:s.date,start:s.start_time,end:s.end_time,childId:s.child_id}))},{headers:{'Cache-Control':'private, no-store'}})
     }
     if(request.nextUrl.searchParams.get('inventory')==='2'){
       const group=request.nextUrl.searchParams.get('group'),selected=request.nextUrl.searchParams.get('selected')?.split(',').filter(Boolean)||[]
@@ -115,7 +115,7 @@ export async function POST(request:NextRequest){
   try{
     const body=await request.json()
     if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(body.requestId||'')||!Array.isArray(body.picks)||body.picks.length<1||body.picks.length>32)return NextResponse.json({error:'เลือกรอบให้ครบก่อนยืนยัน'},{status:400})
-    const result=await checkoutRpc('booking_ux_redeem_many_v1',{p_actor:user.id,p_request:body.requestId,p_picks:body.picks})
+    const result=await checkoutRpc('booking_ux_redeem_many_v3',{p_actor:user.id,p_request:body.requestId,p_picks:body.picks})
     return NextResponse.json(result)
   }catch(e){return NextResponse.json({error:checkoutError(e)},{status:409})}
 }

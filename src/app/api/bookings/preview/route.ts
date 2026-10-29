@@ -9,6 +9,8 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName } from '@/types/database'
 import { Task10Error } from '@/lib/task10-policy'
+import { quoteBookingCoupon } from '@/lib/booking-coupon-server'
+import { CheckoutRpcError, checkoutError } from '@/lib/booking-checkout-server'
 
 interface PreviewPayload {
   bookingId?: string | null
@@ -20,6 +22,7 @@ interface PreviewPayload {
 }
 
 function previewError(error: unknown) {
+  if (error instanceof CheckoutRpcError) return NextResponse.json({ error: checkoutError(error), code: error.message }, { status: 400 })
   if (error instanceof Task10Error) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
   if (error instanceof ProgressiveBookingPreviewError) {
     const status = error.code === 'PROGRESSIVE_SCOPE_LOCKED'
@@ -105,12 +108,31 @@ export async function POST(request: NextRequest) {
       existingStatuses: ['paid', 'verified'],
       excludeBookingId: body.bookingId || undefined,
     })
+    let couponId = body.couponId
+    if (body.bookingId && !couponId) {
+      const hold = await client.from('progressive_coupon_reservations').select('coupon_id').eq('booking_id', body.bookingId).eq('user_id', user.id).eq('status', 'reserved').maybeSingle()
+      if (hold.error) throw hold.error
+      couponId = hold.data?.coupon_id
+    }
+    const coupon = couponId ? await quoteBookingCoupon(user.id, couponId, courseType.id, price.totalPrice, body.bookingId) : null
+    let historicalDiscount = 0
+    if (body.bookingId && !coupon) {
+      const [usage, saved] = await Promise.all([
+        client.from('coupon_usages').select('discount_amount').eq('booking_id', body.bookingId).eq('user_id', user.id),
+        client.from('bookings').select('total_price').eq('id', body.bookingId).eq('user_id', user.id).single(),
+      ])
+      if (usage.error || saved.error) throw usage.error || saved.error
+      historicalDiscount = (usage.data || []).reduce((sum, row) => sum + Number(row.discount_amount), 0)
+      if (historicalDiscount && price.totalPrice !== Number(saved.data.total_price) + historicalDiscount) {
+        return NextResponse.json({ error: checkoutError(new Error('BOOKING_UX_LEGACY_COUPON_REVIEW_REQUIRED')) }, { status: 409 })
+      }
+    }
     return NextResponse.json({
       mode: 'legacy',
       policy: 'policy' in price ? price.policy : undefined,
-      totalPrice: price.totalPrice,
+      totalPrice: coupon?.totalPrice ?? price.totalPrice - historicalDiscount,
       grossPrice: price.totalPrice,
-      discountAmount: 0,
+      discountAmount: coupon?.discountAmount ?? historicalDiscount,
       selectedTier: price.selectedTier,
       existingSessions: price.existingSessions,
       existingPaid: price.existingPaid,

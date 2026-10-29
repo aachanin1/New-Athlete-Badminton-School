@@ -474,7 +474,7 @@ export async function getCoachStudentMemoryMap(
       `)
       .is('child_id', null)
       .in('bookings.user_id', adultIds)
-      .eq('bookings.learner_type', 'self')
+
       .in('status', LEARNED_SESSION_STATUSES)
       .in('bookings.status', LEARNED_BOOKING_STATUSES)
       .neq('status', 'rescheduled')
@@ -492,11 +492,13 @@ export async function getCoachStudentMemoryMap(
       `Coach student history session query ${index + 1} failed`,
     ) || []
   ))
-  const slotIds = unique(sessions.map((session) => session.schedule_slot_id || ''))
+  // Private used-hour attendees may include self although the immutable paid bill was child-only.
+  const actualLearnerSessions = sessions.filter(session => Boolean(session.child_id) || session.bookings?.learner_type === 'self' || session.bookings?.course_types?.name === 'private')
+  const slotIds = unique(actualLearnerSessions.map((session) => session.schedule_slot_id || ''))
 
   if (slotIds.length === 0) return emptyMap
 
-  const sessionIds = unique(sessions.map((session) => session.id))
+  const sessionIds = unique(actualLearnerSessions.map((session) => session.id))
   const groupStudents = await loadCoachStudentHistoryExactMembershipRows(
     supabase,
     sessionIds,
@@ -583,7 +585,7 @@ export async function getCoachStudentMemoryMap(
     })
   }
 
-  for (const session of sessions) {
+  for (const session of actualLearnerSessions) {
     const booking = session.bookings
     const studentType: StudentType = session.child_id ? 'child' : 'adult'
     const studentId = session.child_id || booking?.user_id

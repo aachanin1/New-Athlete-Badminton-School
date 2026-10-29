@@ -29,6 +29,8 @@ export class Task10Error extends Error {
 
 export function task10RpcError(code?: string): Task10Error {
   const messages: Record<string, string> = {
+      BOOKING_UX_COUPON_ACK_REQUIRED: 'ยอดใหม่ไม่เข้าเงื่อนไขคูปอง กรุณากลับหน้าชำระเงินและใช้ปุ่มแก้ไขวันเรียนเพื่อตรวจและยืนยันยอดใหม่',
+      BOOKING_UX_LEGACY_COUPON_REVIEW_REQUIRED: 'บิลเดิมมีเงื่อนไขคูปองที่ต้องตรวจสอบก่อนเปลี่ยนยอด ระบบเก็บวันเรียนและยอดเดิมไว้ กรุณาติดต่อผู้ดูแล',
       BOOKING_UX_TARGET_AFTER_EXPIRY: PACKAGE_DATE_ERROR,
       BRANCH_DATE_CLOSED: 'สาขาปิดในวันที่เลือก กรุณาเลือกวันหรือสาขาอื่น',
       LESSON_SOURCE_REASON_REQUIRED: 'กรุณาระบุเหตุผลการจัดการ',
@@ -59,7 +61,7 @@ export function task10RpcError(code?: string): Task10Error {
 
 export async function callTask10<T>(client: Task10RpcClient, name: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await client.rpc(name, args)
-  if (error) throw task10RpcError(/(?:BOOKING_UX_TARGET_AFTER_EXPIRY|(?:BRANCH_DATE|LESSON_SOURCE|TASK10|PROGRESSIVE)_[A-Z_]+)/.exec(error.message)?.[0])
+  if (error) throw task10RpcError(/(?:(?:BOOKING_UX|BRANCH_DATE|LESSON_SOURCE|TASK10|PROGRESSIVE)_[A-Z_]+)/.exec(error.message)?.[0])
   if (data === null) throw new Task10Error('TASK10_UNAVAILABLE', 'ไม่สามารถอ่านข้อมูลกติกาได้', 503)
   return data as T
 }

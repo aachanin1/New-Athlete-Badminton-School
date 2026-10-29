@@ -94,13 +94,14 @@ interface EditBookingData extends EditBookingRow {
   childIds: string[]
 }
 
-export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string; month?: string; payment?: string }> }) {
+export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string; month?: string; payment?: string; edit?: string }> }) {
   const resolvedSearchParams = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
-  if (resolvedSearchParams.payment) return <BookingPaymentClient bookingId={resolvedSearchParams.payment}/>
+  if (resolvedSearchParams.editBookingId) redirect('/dashboard/booking?payment='+encodeURIComponent(resolvedSearchParams.editBookingId)+'&edit=1')
+  if (resolvedSearchParams.payment) return <BookingPaymentClient key={resolvedSearchParams.payment} bookingId={resolvedSearchParams.payment} initialEditing={resolvedSearchParams.edit==='1'}/>
   const packagePromise = loadBookingPackages()
   const previousPromise = loadPreviousBookings(user.id)
   const closurePromise = readFutureBranchDateClosureState(supabase)
