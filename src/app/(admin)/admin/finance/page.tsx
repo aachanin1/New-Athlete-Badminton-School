@@ -1,9 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { getServiceRoleClient } from '@/lib/auth/admin'
+import { redirect } from 'next/navigation'
+import { getServiceRoleClient, requireAdminPageAccess, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
 import type { PaymentLedgerAllocationRow } from '@/types/database'
 import { FinanceClient } from '@/components/admin/finance-client'
-import { loadProgressiveFinanceBookings } from '@/lib/admin-finance-read'
+import { loadFinanceYears, loadProgressiveFinanceAllocations, loadProgressiveFinanceBookings, readCompleteFinanceRows } from '@/lib/admin-finance-read'
+import { financePeriodDateRange, getFinancePeriod } from '@/lib/admin-finance-period'
 
 interface PaymentRow {
   id: string
@@ -65,45 +66,41 @@ interface WeeklyTeachingSummaryRow {
   profiles?: { full_name: string | null; email: string | null } | null
 }
 
-function getYearRange() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 1)
-  const end = new Date(now.getFullYear() + 1, 0, 1)
-  const toInput = (value: Date) => {
-    const year = value.getFullYear()
-    const month = String(value.getMonth() + 1).padStart(2, '0')
-    const day = String(value.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
-  return { start: toInput(start), end: toInput(end) }
-}
-
-export default async function FinancePage() {
-  const supabase = await createClient()
+export default async function FinancePage({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const { supabase } = await requireAdminPageAccess()
+  const access = await requireAdminMenuAccess('finance')
+  if (!access.ok) redirect('/admin')
+  const period = getFinancePeriod(await searchParams)
   const service = getServiceRoleClient()
-  const range = getYearRange()
+  const range = financePeriodDateRange(period)
 
   const [
-    { data: payments },
-    { data: coachSummaries },
-    { data: expenses },
-    { data: branches },
+    payments,
+    coachSummaries,
+    expenses,
+    branches,
+    progressiveAllocations,
+    availableYears,
   ] = await Promise.all([
-    supabase
+    readCompleteFinanceRows<PaymentRow>('legacy payments', (start, end) => {
+      let query = supabase
       .from('payments')
       .select(`
         id, amount, status, created_at,
-        bookings(id, month, year, branch_id, course_type_id, total_sessions, total_price,
+        bookings!inner(id, month, year, branch_id, course_type_id, total_sessions, total_price,
           branches(name),
           course_types(name)
         ),
         profiles!payments_user_id_fkey(full_name, email)
-      `)
+      `, { count: 'exact' })
       .in('status', ['pending', 'approved', 'rejected'])
-      .order('created_at', { ascending: false })
-      .limit(2000) as unknown as PromiseLike<{ data: PaymentRow[] | null }>,
-    supabase
+      .eq('bookings.year', period.year)
+      if (period.mode === 'month') query = query.eq('bookings.month', period.month)
+      return query.order('created_at', { ascending: false }).order('id').range(start, end)
+    }, (row) => row.id),
+    readCompleteFinanceRows<WeeklyTeachingSummaryRow>('coach summaries', (start, end) => supabase
       .from('coach_weekly_teaching_summaries')
       .select(`
         id, coach_id, week_start, week_end, coach_employment_type, threshold_hours,
@@ -111,37 +108,32 @@ export default async function FinancePage() {
         payable_private_hours, payable_hours, payable_amount, payable_session_count,
         missing_checkin_count, missing_photo_count, status, notes, closed_at,
         profiles!coach_weekly_teaching_summaries_coach_id_fkey(full_name, email)
-      `)
+      `, { count: 'exact' })
       .gte('week_start', range.start)
       .lt('week_start', range.end)
       .order('week_start', { ascending: false })
-      .limit(2000) as unknown as PromiseLike<{ data: WeeklyTeachingSummaryRow[] | null }>,
-    supabase
+      .order('id').range(start, end), (row) => row.id),
+    readCompleteFinanceRows<ExpenseRow>('expenses', (start, end) => supabase
       .from('finance_expenses')
       .select(`
         id, expense_date, category, description, amount, branch_id, created_at,
         branches(name),
         profiles!finance_expenses_created_by_fkey(full_name, email)
-      `)
+      `, { count: 'exact' })
       .gte('expense_date', range.start)
       .lt('expense_date', range.end)
       .order('expense_date', { ascending: false })
-      .limit(2000) as unknown as PromiseLike<{ data: ExpenseRow[] | null }>,
-    supabase
+      .order('id').range(start, end), (row) => row.id),
+    readCompleteFinanceRows<BranchOptionRow>('branches', (start, end) => supabase
       .from('branches')
-      .select('id, name')
+      .select('id, name', { count: 'exact' })
       .eq('is_active', true)
-      .order('name') as unknown as PromiseLike<{ data: BranchOptionRow[] | null }>,
+      .order('name').order('id').range(start, end), (row) => row.id),
+    isProgressivePaymentReviewEnabled()
+      ? loadProgressiveFinanceAllocations(service, period)
+      : Promise.resolve([] as PaymentLedgerAllocationRow[]),
+    loadFinanceYears(supabase, period),
   ])
-
-  const { data: progressiveAllocations, error: progressiveAllocationError } = isProgressivePaymentReviewEnabled()
-    ? await service.from('payment_ledger_allocations_v1')
-        .select('*')
-        .eq('source_kind', 'progressive')
-        .eq('status', 'approved')
-        .limit(2000)
-    : { data: [] as PaymentLedgerAllocationRow[], error: null }
-  if (progressiveAllocationError) throw new Error(`[admin/finance] progressive ledger read failed: ${progressiveAllocationError.message}`)
 
   const progressiveBookingIds = Array.from(new Set((progressiveAllocations || []).map((row) => row.booking_id)))
   const progressiveBookings = await loadProgressiveFinanceBookings(service, progressiveBookingIds)
@@ -227,15 +219,15 @@ export default async function FinancePage() {
     name: branch.name || 'ไม่ทราบสาขา',
   }))
 
-  const now = new Date()
   return (
     <FinanceClient
+      key={`${period.mode}:${period.year}:${period.month}`}
       payments={[...paymentList, ...progressivePaymentList]}
       coachSummaries={coachSummaryList}
       expenses={expenseList}
       branches={branchOptions}
-      currentMonth={now.getMonth() + 1}
-      currentYear={now.getFullYear()}
+      period={period}
+      availableYears={availableYears}
     />
   )
 }

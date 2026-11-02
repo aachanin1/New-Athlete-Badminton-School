@@ -1,7 +1,7 @@
 'use client'
 
 import type { FormEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { formatThaiDateWithWeekday } from '@/lib/date-format'
+import { financePeriodHref, type FinancePeriod } from '@/lib/admin-finance-period'
 import {
   Banknote,
   Building2,
@@ -102,8 +103,8 @@ interface FinanceClientProps {
   coachSummaries: CoachWeeklySummaryData[]
   expenses: ExpenseData[]
   branches: BranchOption[]
-  currentMonth: number
-  currentYear: number
+  period: FinancePeriod
+  availableYears: number[]
 }
 
 const MONTH_LABELS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
@@ -142,11 +143,14 @@ function getPeriodDate(value: string) {
   return new Date(`${value}T00:00:00`)
 }
 
-export function FinanceClient({ payments, coachSummaries, expenses, branches, currentMonth, currentYear }: FinanceClientProps) {
+export function FinanceClient({ payments, coachSummaries, expenses, branches, period, availableYears }: FinanceClientProps) {
   const router = useRouter()
-  const [viewMonth, setViewMonth] = useState(currentMonth)
-  const [viewYear, setViewYear] = useState(currentYear)
-  const [viewMode, setViewMode] = useState<'month' | 'year'>('month')
+  const [isLoadingPeriod, startPeriodTransition] = useTransition()
+  const { month: viewMonth, year: viewYear, mode: viewMode } = period
+  const changePeriod = (changes: Partial<FinancePeriod>) => {
+    const next = { ...period, ...changes }
+    startPeriodTransition(() => router.push(financePeriodHref(next), { scroll: false }))
+  }
   const [expenseForm, setExpenseForm] = useState({
     expenseDate: formatInputDate(new Date()),
     category: EXPENSE_CATEGORIES[0],
@@ -294,21 +298,6 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
     }
   }, [filteredCoachSummaries, filteredExpenses, filteredPayments])
 
-  const years = useMemo(() => {
-    const values = new Set<number>()
-    payments.forEach((payment) => {
-      if (payment.booking_year) values.add(payment.booking_year)
-    })
-    coachSummaries.forEach((summary) => {
-      if (summary.week_start) values.add(getPeriodDate(summary.week_start).getFullYear())
-    })
-    expenses.forEach((expense) => {
-      if (expense.expense_date) values.add(getPeriodDate(expense.expense_date).getFullYear())
-    })
-    values.add(currentYear)
-    return Array.from(values).sort((a, b) => b - a)
-  }, [coachSummaries, currentYear, expenses, payments])
-
   const maxMonthlyValue = useMemo(() => {
     const values = Array.from(finance.byMonth.values()).map((month) => Math.max(month.revenue, month.coachPay + month.manualExpenses))
     return Math.max(...values, 1)
@@ -370,7 +359,7 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" aria-busy={isLoadingPeriod}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
@@ -395,22 +384,24 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
             <button
               type="button"
               className={`rounded-md px-3 py-2 text-sm font-semibold transition ${viewMode === 'month' ? 'bg-white text-[#2748bf] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-              onClick={() => setViewMode('month')}
+              disabled={isLoadingPeriod}
+              onClick={() => changePeriod({ mode: 'month' })}
             >
               รายเดือน
             </button>
             <button
               type="button"
               className={`rounded-md px-3 py-2 text-sm font-semibold transition ${viewMode === 'year' ? 'bg-white text-[#2748bf] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-              onClick={() => setViewMode('year')}
+              disabled={isLoadingPeriod}
+              onClick={() => changePeriod({ mode: 'year' })}
             >
               รายปี
             </button>
           </div>
 
           {viewMode === 'month' && (
-            <Select value={String(viewMonth)} onValueChange={(value) => setViewMonth(Number(value))}>
-              <SelectTrigger>
+            <Select disabled={isLoadingPeriod} value={String(viewMonth)} onValueChange={(value) => changePeriod({ month: Number(value) })}>
+              <SelectTrigger aria-label="เดือนรายงาน">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -421,18 +412,20 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
             </Select>
           )}
 
-          <Select value={String(viewYear)} onValueChange={(value) => setViewYear(Number(value))}>
-            <SelectTrigger>
+          <Select disabled={isLoadingPeriod} value={String(viewYear)} onValueChange={(value) => changePeriod({ year: Number(value) })}>
+            <SelectTrigger aria-label="ปีรายงาน">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {years.map((year) => (
+              {availableYears.map((year) => (
                 <SelectItem key={year} value={String(year)}>{year + 543}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
+
+      {isLoadingPeriod && <p role="status" className="text-sm text-gray-500">กำลังโหลดรายงาน…</p>}
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-7">
         <Card className="border-emerald-200 bg-emerald-50/50">
