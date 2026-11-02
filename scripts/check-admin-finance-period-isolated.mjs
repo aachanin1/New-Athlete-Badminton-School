@@ -158,12 +158,12 @@ async function reads() {
     assert.ok(actual.availableYears.includes(2025)&&actual.availableYears.includes(2026))
     result.periods[key] = independent
   }
-  const oldSource = execFileSync('git',['show','HEAD:src/app/(admin)/admin/finance/page.tsx'],{encoding:'utf8'})
+  const oldSource = execFileSync('git',['show','89b786e9ab4e328478ca71fdde5f58f6d306ea97:src/app/(admin)/admin/finance/page.tsx'],{encoding:'utf8'})
   const old = await props({},oldSource,client)
   const oldNovember = {...old,payments:old.payments.filter(p=>p.booking_month===11&&p.booking_year===2026)}
   result.oldNovemberRevenue = totals(oldNovember).revenue
   check('original capped page undercounts the same >1,000-row physical fixture; corrected page matches SQL',()=>assert.ok(result.oldNovemberRevenue<result.periods['month-2026-11'].revenue))
-  const originalClient = execFileSync('git',['show','HEAD:src/components/admin/finance-client.tsx'],{encoding:'utf8'}).replaceAll('\r\n','\n')
+  const originalClient = execFileSync('git',['show','89b786e9ab4e328478ca71fdde5f58f6d306ea97:src/components/admin/finance-client.tsx'],{encoding:'utf8'}).replaceAll('\r\n','\n')
   const currentClient = fs.readFileSync(path.join(root,'src/components/admin/finance-client.tsx'),'utf8').replaceAll('\r\n','\n')
   const calculation = text=>text.slice(text.indexOf('  const filteredPayments ='),text.indexOf('  const years =')>=0?text.indexOf('  const years ='):text.indexOf('  const maxMonthlyValue =')).trim()
   check('all existing financial filters, formulas, batch deduplication and expense mutations preserved',()=> {
