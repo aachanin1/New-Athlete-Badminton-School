@@ -41,6 +41,7 @@ export function MakeupHistoryDialog({ subject, onClose }: { subject: MakeupHisto
   return <Dialog open={Boolean(subject)} onOpenChange={open => { if (!open) onClose() }}>
     <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto" onOpenAutoFocus={() => { focusReturn.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={event => { event.preventDefault(); (focusReturn.current?.isConnected ? focusReturn.current : document.querySelector<HTMLElement>('[role="tab"][data-state="active"]'))?.focus({ preventScroll: true }) }}>
       <DialogHeader><DialogTitle>ประวัติสิทธิ์และการชดเชย</DialogTitle><DialogDescription>{subject?.title} · เดือนต้นทาง {subject ? formatThaiMonthYear(`${subject.month}-01`) : ''}</DialogDescription></DialogHeader>
+      <p className="text-sm text-gray-600">จำนวนในแท็บคือรายการประวัติ รวมรายการที่ใช้แล้ว ไม่ใช่ยอดกระเป๋าคงเหลือ</p>
       {summary ? <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
         <p>ซื้อยืนยันแล้ว {summary.sourcePurchase.quantity} รอบ → โควตา {summary.quota} · ใช้แล้ว {summary.used} · เหลือ {summary.remaining}</p>
         {summary.exceptionUsed ? <p>ในยอดใช้จริงนี้ เป็นกรณีพิเศษ {summary.exceptionUsed} ครั้ง</p> : null}
