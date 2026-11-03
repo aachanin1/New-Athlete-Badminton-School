@@ -2122,7 +2122,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                           ))}
                         </div>
                         <div className="flex flex-wrap gap-2 sm:shrink-0">
-                          <Button size="sm" variant="outline" onClick={()=>{const source=month.sourceSession;if(source.user_id)setHistorySubject({parentId:source.user_id,childId:source.child_id,course:source.course_type,month:month.monthKey,title:group.learnerName})}}>ดูประวัติ</Button>
+                          <Button size="sm" variant="outline" onClick={()=>{const source=month.sourceSession;if(source.user_id)setHistorySubject({parentId:source.user_id,childId:source.child_id,course:source.course_type,month:month.monthKey,title:group.learnerName,reference:source.id})}}>ดูประวัติ</Button>
                           {month.canCreate ? (
                             <Button size="sm" disabled={loading} className="h-9 bg-[#f57e3b] text-white hover:bg-[#e06d2e]" onClick={() => openMakeupDialog(month)}>
                               <CalendarPlus className="mr-2 h-4 w-4" />
