@@ -24,10 +24,11 @@ export function useMakeupCalendarNow(open: boolean) {
   return now
 }
 
-export function MakeupCalendarPicker({ month, days, selectedDate, selectedSlot, disabled, onDateChange, onSlotChange, onMonthChange }: {
+export function MakeupCalendarPicker({ month, days, selectedDate, selectedSlot, disabled, onDateChange, onSlotChange, onMonthChange, conflict }: {
   month: string; days: MakeupCalendarDay[]; selectedDate: string; selectedSlot: MakeupCalendarSlot | null
   disabled: boolean; onDateChange: (date: string) => void; onSlotChange: (slot: MakeupCalendarSlot) => void
   onMonthChange?: (month:string) => void
+  conflict?: (date:string,start:string,end:string)=>string|null
 }) {
   const selectedDay = days.find(day => day.dateInput === selectedDate)
   const previous=adminMakeupShiftMonth(month,-1),next=adminMakeupShiftMonth(month,1)
@@ -61,9 +62,10 @@ export function MakeupCalendarPicker({ month, days, selectedDate, selectedSlot, 
           <p className="mb-2 flex items-start gap-1 break-words text-xs text-gray-600"><Building2 className="h-3.5 w-3.5 shrink-0" />{branch.name}</p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{slots.map(slot => {
             const picked = selectedSlot?.date === selectedDay.dateInput && selectedSlot.branchId === branch.id && selectedSlot.start === slot.start && selectedSlot.end === slot.end && selectedSlot.templateId === slot.templateId
-            return <Button key={`${slot.templateId || branch.id}:${slot.start}:${slot.end}`} type="button" size="sm" data-template-id={slot.templateId} disabled={disabled} aria-pressed={picked}
-              variant={picked ? 'default' : 'outline'} className="justify-start" onClick={() => onSlotChange({ ...slot, date: selectedDay.dateInput, dayOfWeek: selectedDay.dayOfWeek, branchId: branch.id, branchName: branch.name })}>
-              <Clock className="mr-1 h-3.5 w-3.5 shrink-0" />{slot.start.slice(0, 5)}-{slot.end.slice(0, 5)}
+            const blocked=conflict?.(selectedDay.dateInput,slot.start,slot.end)
+            return <Button key={`${slot.templateId || branch.id}:${slot.start}:${slot.end}`} type="button" size="sm" data-template-id={slot.templateId} disabled={disabled||Boolean(blocked)} aria-pressed={picked} title={blocked||undefined}
+              variant={picked ? 'default' : 'outline'} className="h-auto min-h-9 justify-start whitespace-normal text-left" onClick={() => onSlotChange({ ...slot, date: selectedDay.dateInput, dayOfWeek: selectedDay.dayOfWeek, branchId: branch.id, branchName: branch.name })}>
+              <Clock className="mr-1 h-3.5 w-3.5 shrink-0" />{slot.start.slice(0, 5)}-{slot.end.slice(0, 5)}{blocked?<span className="ml-1 text-xs">· {blocked}</span>:null}
             </Button>
           })}</div>
         </div>)}

@@ -1,9 +1,9 @@
 import type { KidsFamilyMakeupState } from '@/lib/kids-family-makeup'
 export interface MakeupHistorySubject {
-  parentId: string; childId?: string | null; month: string; course: string; title: string
+  parentId: string; childId?: string | null; month: string; course: string; title: string; reference?: string
 }
 export interface MakeupHistoryLesson {
-  id: string; date: string; startTime: string; endTime: string; branchName: string; courseType?: string; isMakeup?: boolean
+  id: string; date: string; startTime: string; endTime: string; branchName: string; courseType?: string; isMakeup?: boolean; referenceOnly?: boolean
 }
 export interface MakeupHistoryEvent {
   id: string; kind: 'wallet' | 'absent' | 'use'; title: string; at: string | null; timeLabel: string

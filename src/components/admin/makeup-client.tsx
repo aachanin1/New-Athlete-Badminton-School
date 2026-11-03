@@ -20,7 +20,7 @@ import { useAdminMakeupReview } from '@/components/admin/use-admin-makeup-review
 import { useReviewRoundRequests } from '@/components/admin/use-review-round-requests'
 import { captureAdminReviewAnchor, captureAdminReviewFocus } from '@/lib/admin-review-scroll'
 import { ADMIN_COURSES } from '@/components/admin/course-colors'
-import { KidsFamilyMakeupBrowse } from '@/components/admin/kids-family-makeup-browse'
+import { AdminMakeupWorkspace } from '@/components/admin/admin-makeup-workspace'
 import { MakeupHistoryDialog } from '@/components/admin/makeup-history-dialog'
 import type { MakeupHistorySubject } from '@/lib/admin-makeup-history'
 import { ReviewCloseDialog, ReviewCloseImpact, type ReviewCloseRequest } from '@/components/admin/review-close-dialog'
@@ -436,7 +436,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   }, [currentQueue, activeTab, reviewPage, reviewPageSize, page, pageSize])
   const sessions=currentQueue?.sessions||EMPTY_SESSIONS,linkedSessions=currentQueue?.linkedSessions||EMPTY_SESSIONS,coaches=currentQueue?.coaches||EMPTY_COACHES
   useEffect(()=>{
-    if(activeTab!=='makeup'||familyPolicy.effectiveAt&&makeupCourse==='kids_group'){setQueueLoading(false);setQueueError('');return}
+    if(activeTab!=='makeup'||familyPolicy.effectiveAt){setQueueLoading(false);setQueueError('');return}
     const controller=new AbortController(),mode='legacy',key=legacyKey
     const [search,branch,course,status,p,size]=[makeupSearch,makeupBranch,makeupCourse,makeupStatus,page,pageSize]
     const q=new URLSearchParams({mode,month:selectedSourceMonth,search:String(search),branch:String(branch),course:String(course),status:String(status),page:String(p),pageSize:String(size)})
@@ -2042,15 +2042,16 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                 </SelectContent>
               </Select>
               <p className="whitespace-nowrap text-sm text-gray-500">
-                {currentQueue ? `พบ ${currentQueue.total} ผู้เรียน` : makeupCourse==='kids_group'&&familyPolicy.effectiveAt?'เด็กกลุ่ม · สิทธิ์ร่วมครอบครัว':'กำลังอ่านรายการ'}
+                {currentQueue ? `พบ ${currentQueue.total} ผู้เรียน` : familyPolicy.effectiveAt?ADMIN_COURSES[makeupCourse as keyof typeof ADMIN_COURSES].label:'กำลังอ่านรายการ'}
               </p>
             </CardContent>
           </Card>
 
       </fieldset>
-      {familyPolicy.effectiveAt ? <KidsFamilyMakeupBrowse month={selectedSourceMonth} active={activeTab==='makeup'} branches={branches}
+      {familyPolicy.effectiveAt ? <AdminMakeupWorkspace month={selectedSourceMonth} active={activeTab==='makeup'} blocked={isMonthPending||recoveryBlocked} revision={readEpoch} branches={branches}
         search={makeupSearch} branch={makeupBranch} course={makeupCourse} status={makeupStatus} onSavingChange={setFamilySaving}
         continuation={continuation} onContinuationHandled={() => setContinuation(null)} /> : null}
+      {!familyPolicy.effectiveAt ? <>
       {missingMakeupIdentity.length > 0 && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           ไม่พบรหัสผู้เรียนที่จำเป็น จึงไม่สามารถจัดกลุ่มหรือสร้างวันชดเชยให้รายการเหล่านี้ได้:
@@ -2164,6 +2165,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
           />}
         </div>
       )}
+      </> : null}
         </TabsContent>
         <TabsContent value="manage" forceMount className="data-[state=inactive]:hidden">
           <AdminLessonManager key={recoveredSourceId || 'initial'} month={selectedSourceMonth} branches={branches} scheduleTemplates={[]} active={activeTab==='manage'} initialSessionId={manageSessionId === recoveredSourceId ? null : manageSessionId}

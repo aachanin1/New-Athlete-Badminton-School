@@ -15,7 +15,7 @@ export function MakeupHistoryDialog({ subject, onClose }: { subject: MakeupHisto
   const [kind, setKind] = useState<keyof typeof kinds>('all'), [page, setPage] = useState(1), [epoch, setEpoch] = useState(0)
   const [data, setData] = useState<(MakeupHistoryResult & { key: string }) | null>(null), [loading, setLoading] = useState(false), [error, setError] = useState('')
   const focusReturn = useRef<HTMLElement | null>(null)
-  const subjectKey = subject ? JSON.stringify([subject.parentId, subject.childId, subject.month, subject.course]) : ''
+  const subjectKey = subject ? JSON.stringify([subject.parentId, subject.childId, subject.month, subject.course, subject.reference]) : ''
   const [scope, setScope] = useState('')
   const currentKind = scope === subjectKey ? kind : 'all', currentPage = scope === subjectKey ? page : 1
   const key = JSON.stringify([subjectKey, currentKind, currentPage, epoch])
@@ -25,6 +25,7 @@ export function MakeupHistoryDialog({ subject, onClose }: { subject: MakeupHisto
     setLoading(true); setError('')
     const q = new URLSearchParams({ parent: subject.parentId, month: subject.month, course: subject.course, kind: currentKind, page: String(currentPage), summary: 'true' })
     if (subject.childId) q.set('child', subject.childId)
+    if (subject.reference) q.set('reference', subject.reference)
     void fetch('/api/admin/makeup/history?' + q, { cache: 'no-store', signal: controller.signal }).then(async response => {
       const result = await response.json()
       if (!response.ok || !Array.isArray(result.items)) throw new Error(result.error || 'อ่านประวัติไม่สำเร็จ')
@@ -43,7 +44,7 @@ export function MakeupHistoryDialog({ subject, onClose }: { subject: MakeupHisto
       {summary ? <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
         <p>ซื้อยืนยันแล้ว {summary.sourcePurchase.quantity} รอบ → โควตา {summary.quota} · ใช้แล้ว {summary.used} · เหลือ {summary.remaining}</p>
         {summary.exceptionUsed ? <p>ในยอดใช้จริงนี้ เป็นกรณีพิเศษ {summary.exceptionUsed} ครั้ง</p> : null}
-        <p>ต้นทางที่ใช้ได้ {summary.sources.length} · ใช้ได้ตอนนี้ {availableFamilyMakeupCount(summary)} ครั้ง</p>
+        <p>ต้นทางในหลักฐาน {summary.sources.length} · ใช้ได้ตอนนี้ {availableFamilyMakeupCount(summary)} ครั้ง</p>
         <p>สิทธิ์ชดเชยถึง {formatThaiDateTimeWithWeekday(new Date(Date.parse(summary.expiresAt) - 1))} · แยกจากวันหมดอายุกระเป๋าปกติ</p>
       </div> : null}
       <div className="flex flex-wrap gap-2" aria-label="ประเภทประวัติ">{Object.entries(kinds).map(([value, label]) => <Button key={value} variant={currentKind === value ? 'default' : 'outline'} size="sm" aria-pressed={currentKind === value} onClick={() => { setScope(subjectKey); setKind(value as keyof typeof kinds); setPage(1) }}>{label}{result ? ` ${result.counts[value as keyof typeof kinds]}` : ''}</Button>)}</div>
@@ -59,7 +60,7 @@ export function MakeupHistoryDialog({ subject, onClose }: { subject: MakeupHisto
               <p className="text-gray-600">{event.at ? `${event.timeLabel}: ${formatThaiDateTimeWithWeekday(event.at)}` : 'ไม่พบเวลาบันทึกเดิม'}</p>
               <p className="font-medium">{event.learner}</p>
               {event.participants.length > 1 ? <p>ร่วมกัน {event.participants.length} คน · {event.participants.map(p => p.name).join(' · ')}</p> : null}
-              <div className="rounded-md bg-gray-50 p-2"><p>รอบต้นทาง: {lessonText(event.source)}</p>{event.destination ? <p>{event.destination.isMakeup ? 'วันเรียนชดเชย' : 'รอบปลายทาง'}: {lessonText(event.destination)}</p> : null}</div>
+              <div className="rounded-md bg-gray-50 p-2"><p>{event.source.referenceOnly?'รายการซื้ออ้างอิง':'รอบต้นทาง'}: {lessonText(event.source)}</p>{event.destination ? <p>{event.destination.isMakeup ? 'วันเรียนชดเชย' : 'รอบปลายทาง'}: {lessonText(event.destination)}</p> : null}</div>
               {event.walletExpiresAt ? <p>หมดอายุกระเป๋าปกติ: {formatThaiDateTimeWithWeekday(event.walletExpiresAt)}</p> : null}
               {event.actor ? <p>ผู้ทำรายการ: {event.actor}</p> : null}
               {event.reason ? <p>เหตุผลที่ Admin บันทึก: {event.reason}</p> : null}

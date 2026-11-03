@@ -1,0 +1,42 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import {execFileSync,spawn} from 'node:child_process'
+import {createHash} from 'node:crypto'
+import {run,env as local} from '../tests/admin-makeup-2/runtime.mjs'
+
+const label=process.argv[2]||'candidate1',mode=process.argv[3]||'build',port=Number(process.argv[4]||3181)
+if(!/^[a-z0-9-]+$/.test(label)||!['build','serve'].includes(mode)||![3181,3182,3183,3184].includes(port))throw Error('Use the task-owned label and app ports3150/3151/3152/3153')
+const app=path.join(run.evidenceRoot,'app-'+label)
+// Local tabs can outlive a frozen build. Bind navigation/assets to that build.
+// Older frozen artifacts retain their original runtime configuration.
+const deploymentId=mode==='build'?'booking-local-'+label:JSON.parse(fs.readFileSync(path.join(app,'.next/booking-ux-1-local-build.json'))).deploymentId
+const environment={...process.env,NODE_ENV:'production',TZ:'UTC',NEXT_TELEMETRY_DISABLED:'1',NEXT_PUBLIC_SUPABASE_URL:local.apiUrl,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:local.publishableKey,NEXT_PUBLIC_SUPABASE_ANON_KEY:local.publishableKey,SUPABASE_SERVICE_ROLE_KEY:local.serviceRoleKey,BOOKING_UX_ENABLED:'true',SLIPOK_TEST_MODE:'true',PROGRESSIVE_BOOKING_ENTRY_ENABLED:'true',PROGRESSIVE_PRICING_WRITES_ENABLED:'true',PROGRESSIVE_COUPON_LIFECYCLE_ENABLED:'true',PROGRESSIVE_PAYMENT_BATCH_ENABLED:'true',PROGRESSIVE_PAYMENT_ENTRY_ENABLED:'true',PROGRESSIVE_PAYMENT_REVIEW_ENABLED:'true'}
+if(deploymentId)environment.NEXT_DEPLOYMENT_ID=deploymentId
+let hashes
+if(mode==='build'){
+ if(fs.existsSync(app))throw Error('Use a new build label; existing evidence is immutable')
+ fs.mkdirSync(app,{recursive:true})
+ const baseline=label.startsWith('baseline');const modified=new Set(execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split(/\r?\n/));
+ const files=[...new Set([...execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0'),...(baseline?[]:execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{encoding:'utf8'}).split('\0'))])].filter(p=>p&&fs.existsSync(p)&&fs.statSync(p).isFile()&&!/(^|\/)\.env($|\.)/.test(p))
+ hashes={}
+ for(const file of files){const target=path.join(app,file);fs.mkdirSync(path.dirname(target),{recursive:true});const bytes=baseline&&modified.has(file)?execFileSync('git',['show','HEAD:'+file],{maxBuffer:20*1024*1024}):fs.readFileSync(file);fs.writeFileSync(target,bytes);hashes[file]=createHash('sha256').update(bytes).digest('hex')}
+
+ fs.symlinkSync(path.resolve('node_modules'),path.join(app,'node_modules'),'junction')
+ fs.writeFileSync(path.join(app,'source-manifest.json'),JSON.stringify({runId:run.runId,api:local.apiUrl,hashes},null,2))
+}else{
+ const binding=JSON.parse(fs.readFileSync(path.join(app,'.next/booking-ux-1-local-build.json')))
+ if(binding.runId!==run.runId||binding.api!==local.apiUrl||binding.buildId!==fs.readFileSync(path.join(app,'.next/BUILD_ID'),'utf8').trim())throw Error('Build/database binding mismatch')
+}
+const logPath=path.join(run.evidenceRoot,(mode==='build'?'build-':'serve-')+label+(mode==='serve'?'-'+Date.now():'')+'.log'),log=fs.openSync(logPath,'wx')
+const args=[path.resolve('node_modules/next/dist/bin/next'),mode==='build'?'build':'start',app,...(mode==='build'?['--webpack']:['--hostname','127.0.0.1','--port',String(port)])]
+const child=spawn(process.execPath,args,{env:environment,stdio:['ignore',log,log],windowsHide:true})
+if(mode==='serve')fs.writeFileSync(path.join(run.evidenceRoot,'app-runtime.json'),JSON.stringify({runId:run.runId,app,pid:child.pid,port,api:local.apiUrl,logPath},null,2))
+console.log(JSON.stringify({mode,label,pid:child.pid,logPath}))
+child.on('exit',code=>{
+ if(!code&&mode==='build'){
+  const binding={runId:run.runId,api:local.apiUrl,deploymentId,buildId:fs.readFileSync(path.join(app,'.next/BUILD_ID'),'utf8').trim(),inputsHash:createHash('sha256').update(JSON.stringify(hashes)).digest('hex')}
+  fs.writeFileSync(path.join(app,'.next/booking-ux-1-local-build.json'),JSON.stringify(binding,null,2));console.log(JSON.stringify({built:true,...binding}))
+ }
+ if(code)console.error('Local '+mode+' failed: '+logPath)
+ process.exitCode=code??1
+})

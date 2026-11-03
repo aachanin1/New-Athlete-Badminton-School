@@ -30,13 +30,13 @@ export function makeupCalendarCells(month: string, days: MakeupCalendarDay[]) {
 }
 
 // Presentation availability only. Server state and atomic consume remain authoritative.
-export function kidsMakeupCalendarDays(month: string, branches: MakeupCalendarBranch[], templates: ScheduleTemplateOption[], now: Date): MakeupCalendarDay[] {
+export function courseMakeupCalendarDays(course: string,month: string, branches: MakeupCalendarBranch[], templates: ScheduleTemplateOption[], now: Date): MakeupCalendarDay[] {
   const today = getBangkokDateKey(now)
   if (!today) return []
   return makeupMonthDates(month).filter(date => date >= today).flatMap(dateInput => {
     const dayOfWeek = getBangkokDayOfWeek(dateInput)!
     const slotsByBranch = branches.map(branch => ({ branch, slots: templates.flatMap(template => {
-      if (!template.is_active || template.course_type_name !== 'kids_group' || template.branch_id !== branch.id
+      if (!template.is_active || template.course_type_name !== course || template.branch_id !== branch.id
         || template.branch_slug !== branch.slug || template.day_of_week !== dayOfWeek || isTemplateClosedOnDate(template, dateInput)) return []
       const start = normalizeScheduleTime(template.start_time, dateInput)
       const end = normalizeScheduleTime(template.end_time, dateInput)
@@ -49,6 +49,10 @@ export function kidsMakeupCalendarDays(month: string, branches: MakeupCalendarBr
       .filter(item => item.slots.length > 0)
     return slotsByBranch.length ? [{ dateInput, dayOfWeek, slotsByBranch }] : []
   })
+}
+
+export function kidsMakeupCalendarDays(month:string,branches:MakeupCalendarBranch[],templates:ScheduleTemplateOption[],now:Date){
+ return courseMakeupCalendarDays('kids_group',month,branches,templates,now)
 }
 
 export function findKidsMakeupSlot(month: string, date: string, templateId: string, branches: MakeupCalendarBranch[], templates: ScheduleTemplateOption[], now: Date): MakeupCalendarSlot | null {
