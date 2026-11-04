@@ -24,6 +24,7 @@ import { AdminMakeupWorkspace } from '@/components/admin/admin-makeup-workspace'
 import { MakeupHistoryDialog } from '@/components/admin/makeup-history-dialog'
 import type { MakeupHistorySubject } from '@/lib/admin-makeup-history'
 import { ReviewCloseDialog, ReviewCloseImpact, type ReviewCloseRequest } from '@/components/admin/review-close-dialog'
+import { NoClassReturnDialog, type NoClassReturnRequest } from '@/components/admin/no-class-return-dialog'
 import { MakeupOperationRecovery } from '@/components/admin/makeup-operation-recovery'
 import { adminMakeupStorePolicy } from '@/lib/admin-makeup-store-policy'
 import {adminMakeupCurrentMonth,adminMakeupShiftMonth} from '@/lib/admin-makeup-month'
@@ -363,6 +364,15 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   const [historySubject, setHistorySubject] = useState<MakeupHistorySubject | null>(null)
   const [closeRequest, setCloseRequest] = useState<ReviewCloseRequest | null>(null), [closeSaving, setCloseSaving] = useState(false), [closeBlockedIds, setCloseBlockedIds] = useState<string[]>([])
   const onCloseBlocked = useCallback((ids: string[]) => setCloseBlockedIds(ids), [])
+  const [returnRequest, setReturnRequest] = useState<NoClassReturnRequest | null>(null)
+  const [returnSaving, setReturnSaving] = useState(false), [returnBlockedIds, setReturnBlockedIds] = useState<string[]>([])
+  const [returnBlockedScopes, setReturnBlockedScopes] = useState<string[]>([]), [returnReadEpoch, setReturnReadEpoch] = useState(0)
+  const onReturnBlocked = useCallback((ids: string[], scopes: string[]) => { setReturnBlockedIds(ids); setReturnBlockedScopes(scopes) }, [])
+  const onRoundReturned = useCallback(async (anchor: string, month: string) => {
+    const refreshed = await reviewRefreshRef.current(anchor, month)
+    if (refreshed) { setReadEpoch(value => value + 1); setReturnReadEpoch(value => value + 1) }
+    return refreshed
+  }, [])
   const onReviewClosed = useCallback((rows: Array<{ id: string; closedAt: string }>) => {
     const restore = captureAdminReviewAnchor()
     setSessionOverrides(current => ({ ...current, ...Object.fromEntries(rows.map(row => [row.id, { ...current[row.id], review_closed_at: row.closedAt }])) }))
@@ -424,7 +434,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   useLayoutEffect(()=>{reviewRefreshRef.current=reviewQueue.refresh},[reviewQueue.refresh])
   const reviewData=reviewQueue.data,reviewKey=reviewQueue.key
   const queueLoading=activeTab==='review'?reviewQueue.loading:legacyQueueLoading,queueError=activeTab==='review'?reviewQueue.error:legacyQueueError
-  const reviewRequests=useReviewRoundRequests({actor:reviewActorId,onConfirmed:(anchor,month)=>reviewRefreshRef.current(anchor,month),isExternallyBlocked:(ids,slots)=>closeSaving||ids.some(id=>pendingSessionIds.has(id)||reconcilingSessionIds.has(id)||closeBlockedIds.includes(id))||Boolean(reviewData?.sessions.some(s=>s.schedule_slot_id&&slots.includes(s.schedule_slot_id)&&(pendingSessionIds.has(s.id)||reconcilingSessionIds.has(s.id)||closeBlockedIds.includes(s.id))))})
+  const reviewRequests=useReviewRoundRequests({actor:reviewActorId,onConfirmed:(anchor,month)=>reviewRefreshRef.current(anchor,month),isExternallyBlocked:(ids,slots)=>closeSaving||returnSaving||ids.some(id=>pendingSessionIds.has(id)||reconcilingSessionIds.has(id)||closeBlockedIds.includes(id)||returnBlockedIds.includes(id))||Boolean(reviewData?.sessions.some(s=>ids.includes(s.id)&&s.schedule_slot_id&&returnBlockedScopes.includes(`${s.schedule_slot_id}:${s.coach_id || 'unassigned'}`)))||Boolean(reviewData?.sessions.some(s=>s.schedule_slot_id&&slots.includes(s.schedule_slot_id)&&(pendingSessionIds.has(s.id)||reconcilingSessionIds.has(s.id)||closeBlockedIds.includes(s.id))))})
   const isReviewRequestBlocked=reviewRequests.isBlocked
   const legacyKey=JSON.stringify([selectedSourceMonth,makeupSearch,makeupBranch,makeupCourse,makeupStatus,page,pageSize,readEpoch])
   const currentQueue:QueueData|null=activeTab==='review'?(reviewData?.key===reviewKey?reviewData:null):activeTab==='makeup'?(legacyData?.key===legacyKey?legacyData:null):null
@@ -480,9 +490,10 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   }, [])
 
   const isTargetBusy = useCallback((targetSessionIds: string[]) => (
-    closeSaving || targetSessionIds.some((sessionId) => pendingSessionIds.has(sessionId) || reconcilingSessionIds.has(sessionId) || closeBlockedIds.includes(sessionId))
+    closeSaving || returnSaving || targetSessionIds.some((sessionId) => pendingSessionIds.has(sessionId) || reconcilingSessionIds.has(sessionId) || closeBlockedIds.includes(sessionId) || returnBlockedIds.includes(sessionId))
+    || sessions.some(session => targetSessionIds.includes(session.id) && session.schedule_slot_id && returnBlockedScopes.includes(`${session.schedule_slot_id}:${session.coach_id || 'unassigned'}`))
     || isReviewRequestBlocked(targetSessionIds,sessions.flatMap(s=>targetSessionIds.includes(s.id)&&s.schedule_slot_id?[s.schedule_slot_id]:[]))
-  ), [pendingSessionIds, reconcilingSessionIds, closeBlockedIds, closeSaving,isReviewRequestBlocked,sessions])
+  ), [pendingSessionIds, reconcilingSessionIds, closeBlockedIds, closeSaving,returnSaving,returnBlockedIds,returnBlockedScopes,isReviewRequestBlocked,sessions])
 
   useEffect(() => {
     if (isRefreshPending) {
@@ -570,6 +581,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       inFlightTargetKeysRef.current.has(targetIdentity)
       || refreshTargetKeysRef.current.has(targetIdentity)
       || targetSessionIds.some((sessionId) => inFlightSessionIdsRef.current.has(sessionId) || refreshSessionIdsRef.current.has(sessionId))
+      || returnSaving || targetSessionIds.some(sessionId => returnBlockedIds.includes(sessionId))
       || isReviewRequestBlocked(targetSessionIds,projectedSessions.flatMap(s=>targetSessionIds.includes(s.id)&&s.schedule_slot_id?[s.schedule_slot_id]:[]))
     ) {
       return false
@@ -625,7 +637,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       setSessionIdsPending(targetSessionIds, false)
       restorePosition()
     }
-  }, [applyCanonicalProjection, refreshQueues, setSessionIdsPending,activeTab,isReviewRequestBlocked,projectedSessions])
+  }, [applyCanonicalProjection, refreshQueues, setSessionIdsPending,activeTab,isReviewRequestBlocked,projectedSessions,returnSaving,returnBlockedIds])
 
   const isReviewTargetSession = useCallback((session: BookingSessionData) => {
     if (reviewTargetSessionId) return session.id === reviewTargetSessionId
@@ -1018,7 +1030,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
 
   const closeReviewGroup = (group: ReviewSessionGroup) => {
     const targetSessions = group.sessions.filter(isReviewOrEvidenceSession)
-    if (targetSessions.length === 0) return
+    if (targetSessions.length === 0 || isTargetBusy(targetSessions.map(session => session.id))) return
     setCloseRequest({ key: crypto.randomUUID(), group, reason: `ปิดเคสทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} โดยไม่สร้างสิทธิ์ชดเชย (${targetSessions.length} คน)` })
   }
 
@@ -1399,29 +1411,10 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
         setUnassignedGroup(null)
         return
       } else {
-        const action = 'return_entitlement'
-
-        for (const session of targetSessions) {
-          const response = await fetch('/api/admin/makeup', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session_id: session.id,
-              action,
-              reason,
-            }),
-          })
-
-          const result = await response.json().catch(() => null)
-          if (!response.ok) {
-            setError(result?.error || 'บันทึกผลทั้งรอบไม่สำเร็จ')
-            return
-          }
-        }
+        setReturnRequest({ key: crypto.randomUUID(), group: unassignedGroup, reason })
+        setUnassignedGroup(null)
+        return
       }
-
-      setUnassignedGroup(null)
-      refreshQueues(unassignedGroup.sessions[0]?.id)
     } catch {
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
@@ -1459,7 +1452,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     !moveReason.trim()
   const reviewTargetBusy = reviewSession ? isTargetBusy([reviewSession.id]) : false
   const monthSelectionBlocked = pendingSessionIds.size > 0 || reconcilingSessionIds.size > 0
-    || loading || familySaving || lessonSaving || recoveryBlocked || closeSaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
+    || loading || familySaving || lessonSaving || recoveryBlocked || closeSaving || returnSaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
     || moveSubmitting || roundAttendanceSubmitting || reviewRequests.requests.some(r=>r.phase==='pending')
   const navigateMonth = (month: string) => {
     if (monthSelectionBlocked || inFlightTargetKeysRef.current.size || refreshTargetKeysRef.current.size
@@ -1561,7 +1554,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       {queueError?<p role="alert" className="text-sm text-red-700">{queueError} <Button variant="outline" onClick={()=>{if(activeTab==='review')void reviewQueue.refresh();else setReadEpoch(v=>v+1)}}>ลองอ่านใหม่</Button></p>:null}
       {activeTab==='review'?reviewRequests.requests.filter(r=>(r.phase==='unknown'||r.phase==='reconcile')&&!sessions.some(s=>s.id===r.anchor)).map(r=><div key={r.requestId} role="status" data-testid="review-request-recovery" className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><span>{r.message} · เดือน {r.month}</span><Button variant="outline" size="sm" onClick={()=>reviewRequests.reconcile(r.requestId)}>ตรวจสอบผลเดิม</Button></div>):null}
       <ReviewCloseDialog request={closeRequest} onSavingChange={setCloseSaving} onClosed={onReviewClosed} onBlockedChange={onCloseBlocked} />
-      <Tabs value={activeTab} onValueChange={(value) => { if (!familySaving && !lessonSaving && !closeSaving) setActiveTab(value as MakeupTab) }} className="space-y-4">
+      <NoClassReturnDialog actor={reviewActorId} request={returnRequest} onSavingChange={setReturnSaving} onBlockedChange={onReturnBlocked} onReturned={onRoundReturned} />
+      <Tabs value={activeTab} onValueChange={(value) => { if (!familySaving && !lessonSaving && !closeSaving && !returnSaving) setActiveTab(value as MakeupTab) }} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-3 lg:max-w-[760px]">
           <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="review">ต้องตรวจสอบ {reviewData?.key===reviewKey&&reviewData.stats ? '('+reviewData.stats.review+')':''}</TabsTrigger>
           <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="makeup">เลือกวันชดเชย</TabsTrigger>
@@ -1730,6 +1724,11 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2 xl:w-[56%] xl:shrink-0 xl:content-start xl:justify-end">
+                      <Button size="sm" variant="outline" className="h-auto min-h-9 whitespace-normal border-violet-200 bg-white text-violet-800 hover:bg-violet-50"
+                        disabled={groupMutationBusy || familySaving || lessonSaving || unassignedSubmitting || replacementSubmitting || roundAttendanceSubmitting || moveSubmitting}
+                        onClick={() => setReturnRequest({ key: crypto.randomUUID(), group })}>
+                        ไม่ได้เปิดสอน / คืนสิทธิ์
+                      </Button>
                       {isUnassignedRound ? (
                         <>
                           {canMoveLearnerToExistingGroup && (
@@ -2168,7 +2167,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       </> : null}
         </TabsContent>
         <TabsContent value="manage" forceMount className="data-[state=inactive]:hidden">
-          <AdminLessonManager key={recoveredSourceId || 'initial'} month={selectedSourceMonth} branches={branches} scheduleTemplates={[]} active={activeTab==='manage'} initialSessionId={manageSessionId === recoveredSourceId ? null : manageSessionId}
+          <AdminLessonManager key={`${recoveredSourceId || 'initial'}:${returnReadEpoch}`} month={selectedSourceMonth} branches={branches} scheduleTemplates={[]} active={activeTab==='manage'} initialSessionId={manageSessionId === recoveredSourceId ? null : manageSessionId}
             onChanged={refreshQueues} onSavingChange={setLessonSaving} onMakeup={value => { setContinuation(value); setMakeupSearch(''); setMakeupBranch('all'); setMakeupCourse('kids_group'); setMakeupStatus('all'); setActiveTab('makeup'); refreshQueues() }} />
         </TabsContent>
       </Tabs>
@@ -2686,7 +2685,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                   <SelectContent>
                     <SelectItem value="assign_only">มอบหมายโค้ชอย่างเดียว (ยังไม่เช็คชื่อ)</SelectItem>
                     <SelectItem value="taught">สอนจริงและบันทึกเช็คชื่อทั้งรอบ</SelectItem>
-                    <SelectItem value="return_entitlement">คืนสิทธิ์ทั้งรอบ</SelectItem>
+                    <SelectItem value="return_entitlement">ไม่ได้เปิดสอน / คืนสิทธิ์</SelectItem>
                     <SelectItem value="close_review">ปิดเคสทั้งรอบ ไม่สร้างสิทธิ์ชดเชย</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2767,7 +2766,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
 
               {unassignedMode === 'return_entitlement' && (
                 <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
-                  ระบบจะคืนสิทธิ์เข้ากระเป๋าวันเรียนให้ผู้เรียนทุกคนในรอบนี้ และไม่สร้างชั่วโมงสอนให้โค้ช
+                  ไปตรวจรายชื่อ จำนวนสิทธิ์ และวันหมดอายุล่าสุดก่อนยืนยันคืนสิทธิ์พร้อมกันทั้งรอบ โดยไม่เช็คผู้เรียนขาดและไม่นับชั่วโมงโค้ช
                 </div>
               )}
 
@@ -2809,7 +2808,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                       ? 'มอบหมายโค้ชให้รอบนี้'
                       : unassignedMode === 'taught'
                         ? 'บันทึกโค้ชและเช็คชื่อทั้งรอบ'
-                      : unassignedMode === 'close_review' ? `ยืนยันปิดเคส ${unassignedTargetSessions.length} คน` : 'บันทึกผลทั้งรอบ'}
+                      : unassignedMode === 'close_review' ? `ยืนยันปิดเคส ${unassignedTargetSessions.length} คน` : 'ตรวจผลกระทบก่อนคืนสิทธิ์'}
                 </Button>
               </div>
             </div>

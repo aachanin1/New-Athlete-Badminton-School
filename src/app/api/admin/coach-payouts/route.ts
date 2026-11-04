@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
       location_lat: entry.row.location_lat,
       location_lng: entry.row.location_lng,
       student_count: entry.row.student_count,
+      session_ids: entry.row.student_session_ids,
       attendance_count: entry.row.attendance_count,
       hours: getHoursBetween(entry.row.date, entry.row.start_time, entry.row.end_time),
       regular_hours: entry.regularHours,

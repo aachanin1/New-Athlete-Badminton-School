@@ -85,6 +85,12 @@ interface WalletRedemptionRow {
   redeemed_session_id: string | null
 }
 
+interface WalletMemberRedemptionRow {
+  credit_id: string
+  original_session_id: string
+  redeemed_session_id: string | null
+}
+
 interface AttendanceRow {
   id: string
   booking_session_id: string
@@ -142,6 +148,7 @@ export interface CoachTeachingHourSourceRow {
   location_lat: number | null
   location_lng: number | null
   student_count: number
+  student_session_ids: string[]
   attendance_count: number
   present_count: number
   late_count: number
@@ -490,7 +497,7 @@ async function getWalletRedeemedSessionIds(
   const candidateIds = sessions
     .filter((session) => Boolean(session.rescheduled_from_id) && !session.is_makeup)
     .map((session) => session.id)
-  const data = await runPayrollPagedInChunks<WalletRedemptionRow>({
+  const [data, members] = await Promise.all([runPayrollPagedInChunks<WalletRedemptionRow>({
     ids: candidateIds,
     label: 'wallet provenance',
     source: 'lesson_wallet_credits',
@@ -502,8 +509,21 @@ async function getWalletRedeemedSessionIds(
       .in('redeemed_session_id', chunkSessionIds)
       .order('id')
       .range(from, to),
-  })
-  return new Set(data.map((row) => row.redeemed_session_id).filter((id): id is string => Boolean(id)))
+  }), runPayrollPagedInChunks<WalletMemberRedemptionRow>({
+    ids: candidateIds,
+    label: 'wallet member provenance',
+    source: 'coach_wallet_member_redemptions_v1',
+    metrics,
+    identity: (row) => `${row.credit_id}:${row.original_session_id}`,
+    buildQuery: (chunkSessionIds, from, to) => supabase
+      .from('coach_wallet_member_redemptions_v1')
+      .select('credit_id, original_session_id, redeemed_session_id', { count: 'exact' })
+      .in('redeemed_session_id', chunkSessionIds)
+      .order('credit_id')
+      .order('original_session_id')
+      .range(from, to),
+  })])
+  return new Set([...data, ...members].map((row) => row.redeemed_session_id).filter((id): id is string => Boolean(id)))
 }
 
 async function getAttendanceCounts(supabase: SupabaseLike, sessionIds: string[], metrics: MutableReadMetrics) {
@@ -593,6 +613,7 @@ function createSourceRow(params: {
   slot: SlotRow
   checkin: CheckinRow | null
   studentCount: number
+  studentSessionIds: string[]
   attendanceStats: AttendanceStats
   duplicateAssignment: boolean
 }): CoachTeachingHourSourceRow {
@@ -635,6 +656,7 @@ function createSourceRow(params: {
     location_lat: lat,
     location_lng: lng,
     student_count: params.studentCount,
+    student_session_ids: [...params.studentSessionIds],
     attendance_count: params.attendanceStats.total,
     present_count: params.attendanceStats.present,
     late_count: params.attendanceStats.late,
@@ -767,6 +789,7 @@ export async function getCoachTeachingHourSourceRead(
       slot: first.schedule_slots,
       checkin: checkinMap.get(key) || null,
       studentCount: sessionIds.length,
+      studentSessionIds: sessionIds,
       attendanceStats: sumAttendance(sessionIds, attendanceCounts),
       duplicateAssignment,
     }))
@@ -788,6 +811,7 @@ export async function getCoachTeachingHourSourceRead(
       slot: first.schedule_slots,
       checkin: checkinMap.get(key) || null,
       studentCount: sessions.length,
+      studentSessionIds: sessions,
       attendanceStats: sumAttendance(sessions, attendanceCounts),
       duplicateAssignment: orderedAssignments.length > 1,
     }))
