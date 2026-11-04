@@ -5,6 +5,7 @@ export interface WalletInventorySource {
   participants:Array<string|null>;expires:string;policy:string;normal:boolean;groupId:string
   originalMonth:string|null;originalDate:string|null;validityMonths:number|null;makeupMonth:string|null
   quantity?:number
+  fixedParticipants?:boolean;returnCreditId?:string|null
 }
 export interface WalletInventory {
   serverNow:string

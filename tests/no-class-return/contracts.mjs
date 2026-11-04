@@ -116,7 +116,7 @@ try {
     rpcCalls.push({ name, args }); return { data: { fixture: true }, error: null }
   } }) } })
   await bridge.readOrReturnUntaughtRound({ actor: b, anchor: a, mode: 'commit', requestId, expected: 'fingerprint', reason: ' reason ', ip: '127.0.0.1' })
-  check(rpcCalls[0].name === 'admin_no_class_return_v1', 'server RPC name')
+  check(rpcCalls[0].name === 'admin_no_class_return_hourly_v1', 'server RPC name binds hourly schema capability')
   check(JSON.stringify(Object.keys(rpcCalls[0].args).sort()) === JSON.stringify(['p_actor', 'p_anchor', 'p_mode', 'p_request', 'p_expected', 'p_reason', 'p_ip'].sort()), 'server RPC argument contract')
   check(rpcCalls[0].args.p_actor === b, 'server actor mapping')
   check(rpcCalls[0].args.p_reason === 'reason', 'server reason trim')

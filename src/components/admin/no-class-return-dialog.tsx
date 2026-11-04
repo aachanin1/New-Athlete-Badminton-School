@@ -207,6 +207,7 @@ export function NoClassReturnDialog({ actor, request, onSavingChange, onBlockedC
             </div>
             {impact.units.map(unit => <div key={unit.unitId} className="space-y-2 rounded-lg border p-3 text-sm">
               <p className="font-semibold">{noClassReturnUnitLabel(unit)} · หมดอายุ {formatThaiDateTimeWithWeekday(unit.expiresAt)}</p>
+              {unit.unit === 'hour' && unit.amount > 1 ? <p className="text-sm text-blue-800">คืนเป็นสิทธิ์รอบละ 1 ชั่วโมง จำนวน {unit.amount} ครั้ง เลือกใช้คนละวันได้ โดยคงผู้เรียนและวันหมดอายุเดิม</p> : null}
               {unit.expirySource ? <p className="text-xs text-gray-600">{unit.expirySource === 'stored_credit'
                 ? 'ใช้วันหมดอายุที่บันทึกในเครดิตต้นทางเดิม'
                 : 'รอบนี้ยังไม่เคยเก็บเข้ากระเป๋า ใช้สิ้นเดือนของรอบเดิมตามกติกาคืนสิทธิ์'}</p> : null}
@@ -224,6 +225,7 @@ export function NoClassReturnDialog({ actor, request, onSavingChange, onBlockedC
             <p className="font-semibold">คืนครบ {attempt.receipt.targetCount} คน · ชั่วโมงโค้ช 0 ชั่วโมง</p>
             {attempt.receipt.credits.map(credit => <div key={credit.creditId} className="space-y-1 rounded-lg border p-3">
               <p className="font-semibold">{noClassReturnUnitLabel(credit)}</p><p>หมดอายุเดิม {formatThaiDateTimeWithWeekday(credit.expiresAt)}</p>
+              {credit.unit === 'hour' && credit.amount > 1 ? <p>ใช้รอบละ 1 ชั่วโมงได้ {credit.amount} ครั้ง เลือกใช้คนละวันได้</p> : null}
               <p className="break-all text-xs text-gray-600">เลขเครดิต {credit.creditId}</p>
             </div>)}
             <p>บันทึกแล้ว {formatThaiDateTimeWithWeekday(attempt.receipt.recordedAt)}</p>

@@ -6,6 +6,9 @@ export interface WalletRules {
 }
 export type WalletActor = 'parent' | 'admin' | 'unknown'
 export interface WalletHistoryRow {
+  hourTotal?: number
+  hourUsed?: number
+  hourRemaining?: number
   id: string
   kind: 'wallet' | 'package'
   participants: Array<string | null>
