@@ -26,9 +26,9 @@ try{
  await admin.page.goto(base+`/admin/makeup?month=${f.month}&session=${r.id}`)
  const card=admin.page.getByTestId('makeup-review-group').filter({has:admin.page.getByTestId('review-session-'+r.id)})
  await expect(card).toBeVisible();await expect(card.getByText('รอบชดเชย',{exact:true})).toBeVisible()
- await expect(card.getByRole('button',{name:'ไม่ได้เปิดสอน / คืนสิทธิ์',exact:true})).toBeDisabled()
- await expect(card.getByRole('button',{name:'ปิดเคสทั้งรอบ',exact:true})).toBeDisabled()
- check(true,'Mobile UI identifies Makeup and disables unsupported entitlement/manual actions')
+ await expect(card.getByRole('button',{name:'ไม่ได้เปิดสอน / คืนสิทธิ์',exact:true})).toBeEnabled()
+ await expect(card.getByRole('button',{name:'ปิดเคสทั้งรอบ',exact:true})).toBeEnabled()
+ check(true,'Mobile UI identifies Makeup and preserves original administrative button availability')
  const send=admin.page.waitForResponse(res=>res.url().endsWith('/api/admin/makeup/review-request')&&res.request().method()==='POST')
  await card.getByRole('button',{name:/^ส่งให้โค้ชตรวจสอบรอบนี้/}).click();const response=await send;assert.equal(response.status(),200,await response.text());const receipt=await response.json(),payload=response.request().postDataJSON()
  check(receipt.confirmed===true&&receipt.targetCount===1,'Actual Admin button returns one exact session with a durable receipt')
@@ -62,7 +62,7 @@ try{
  assert.deepEqual(rights(),before);check(true,'Bills, payments, Makeup consumption receipts and Wallet remain byte-equivalent after send/check-in/attendance/replay/absence')
  await admin.page.reload();await admin.page.screenshot({path:path.join(out,'mobile.png'),fullPage:true});await admin.page.setViewportSize({width:1440,height:1000});await admin.page.reload();await admin.page.screenshot({path:path.join(out,'desktop.png'),fullPage:true})
  check(errors.length===0,'No browser exceptions throughout Admin and Coach flow')
- fs.writeFileSync(path.join(out,'pass.json'),JSON.stringify({checks,errors,before,after:rights(),sourceFiles:Object.fromEntries(['src/lib/session-attendance-status.ts','src/lib/admin-makeup-read-model.ts','src/lib/admin-makeup-selection.ts','src/components/admin/makeup-client.tsx','supabase/migrations/20261107142057_coach_makeup_review_v1.sql','tests/coach-makeup-review/acceptance.mjs'].map(file=>[file,createHash('sha256').update(fs.readFileSync(file)).digest('hex')])),at:new Date().toISOString()},null,2))
+ fs.writeFileSync(path.join(out,'pass.json'),JSON.stringify({checks,errors,before,after:rights(),sourceFiles:Object.fromEntries(['src/app/api/admin/makeup/route.ts','supabase/migrations/20261107150253_coach_makeup_review_actions_v1.sql','src/lib/session-attendance-status.ts','src/lib/admin-makeup-read-model.ts','src/lib/admin-makeup-selection.ts','src/components/admin/makeup-client.tsx','supabase/migrations/20261107142057_coach_makeup_review_v1.sql','tests/coach-makeup-review/acceptance.mjs'].map(file=>[file,createHash('sha256').update(fs.readFileSync(file)).digest('hex')])),at:new Date().toISOString()},null,2))
  console.log(JSON.stringify({pass:true,checks:checks.length,out}))
 }catch(error){fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:String(error),checks,errors},null,2));await admin.page.screenshot({path:path.join(out,'failure.png'),fullPage:true}).catch(()=>{});throw error}finally{await browser.close()}
 

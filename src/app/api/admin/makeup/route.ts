@@ -553,7 +553,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: sessionError?.message || 'ไม่พบรอบเรียนนี้' }, { status: 404 })
     }
 
-    if (session.is_makeup) {
+    if (session.is_makeup && action === 'confirm_absent') {
       return NextResponse.json({ error: 'รอบชดเชยไม่สามารถยืนยันเป็นขาดเรียนเพื่อสร้างสิทธิ์ชดเชยซ้ำได้' }, { status: 400 })
     }
 
