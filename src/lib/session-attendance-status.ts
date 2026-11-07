@@ -147,6 +147,5 @@ export function isMakeupEligibleMissedSession(input: DeriveSessionStatusInput) {
 }
 
 export function isAttendanceGapReviewSession(input: DeriveSessionStatusInput) {
-  if (input.isMakeup) return false
   return deriveSessionAttendanceStatus(input) === 'attendance_gap_review'
 }

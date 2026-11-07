@@ -119,7 +119,6 @@ export function isCoachEvidenceReviewSession(session: BookingSessionData) {
   if (isClosedReviewSession(session)) return false
 
   return Boolean(
-    !session.is_makeup &&
     session.schedule_slot_id &&
     session.coach_name &&
     hasRecordedAttendance(session) &&
@@ -129,6 +128,12 @@ export function isCoachEvidenceReviewSession(session: BookingSessionData) {
 
 export function isReviewOrEvidenceSession(session: BookingSessionData) {
   return isAttendanceReviewSession(session) || isCoachEvidenceReviewSession(session)
+}
+
+// Filter membership includes unrecorded attendance; evidence-only requests still
+// require recorded attendance via isCoachEvidenceReviewSession.
+export function isMissingCoachEvidenceSession(session: BookingSessionData) {
+  return Boolean(isReviewOrEvidenceSession(session) && session.schedule_slot_id && session.coach_name && !hasCompleteCoachEvidence(session))
 }
 
 export function isUnassignedAttendanceRound(group: ReviewSessionGroup) {

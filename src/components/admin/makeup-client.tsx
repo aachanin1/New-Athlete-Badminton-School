@@ -1650,6 +1650,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
             <div className="space-y-3" aria-label="รอบที่ต้องตรวจสอบในหน้านี้">
               {pagedReviewGroups.map((group) => {
                 const isTargetGroup = group.sessions.some(isReviewTargetSession)
+                const groupHasMakeup = group.sessions.some(session => session.is_makeup)
                 const groupNeedsAttendanceReview = group.sessions.some(isAttendanceReviewSession)
                 const groupNeedsCoachEvidence = group.sessions.some(isCoachEvidenceReviewSession)
                 const canRequestCoachEvidenceOnly = groupNeedsCoachEvidence && !groupNeedsAttendanceReview
@@ -1725,7 +1726,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                     </div>
                     <div className="flex flex-wrap gap-2 xl:w-[56%] xl:shrink-0 xl:content-start xl:justify-end">
                       <Button size="sm" variant="outline" className="h-auto min-h-9 whitespace-normal border-violet-200 bg-white text-violet-800 hover:bg-violet-50"
-                        disabled={groupMutationBusy || familySaving || lessonSaving || unassignedSubmitting || replacementSubmitting || roundAttendanceSubmitting || moveSubmitting}
+                        disabled={groupHasMakeup || groupMutationBusy || familySaving || lessonSaving || unassignedSubmitting || replacementSubmitting || roundAttendanceSubmitting || moveSubmitting}
                         onClick={() => setReturnRequest({ key: crypto.randomUUID(), group })}>
                         ไม่ได้เปิดสอน / คืนสิทธิ์
                       </Button>
@@ -1737,7 +1738,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                                 size="sm"
                                 variant="outline"
                                 className="h-9 border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
-                                disabled={moveSubmitting || groupMutationBusy}
+                                disabled={groupHasMakeup || moveSubmitting || groupMutationBusy}
                                 onClick={() => openMoveLearnerDialog(group)}
                               >
                                 ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน
@@ -1751,7 +1752,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             <Button
                               size="sm"
                               className="h-9 bg-[#2748bf] text-white hover:bg-[#153c85]"
-                              disabled={groupMutationBusy}
+                              disabled={groupHasMakeup || groupMutationBusy}
                               onClick={() => openUnassignedRoundDialog(group, 'assign_only')}
                             >
                               มอบหมายโค้ชใหม่
@@ -1772,7 +1773,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                               size="sm"
                               variant="outline"
                               className="h-9 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
-                              disabled={groupMutationBusy}
+                              disabled={groupHasMakeup || groupMutationBusy}
                               onClick={() => openUnassignedRoundDialog(group, 'taught')}
                             >
                               บันทึกโค้ชและเช็คชื่อย้อนหลัง
@@ -1805,7 +1806,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             size="sm"
                             variant="outline"
                             className="h-9 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
-                            disabled={replacementSubmitting || groupMutationBusy}
+                            disabled={groupHasMakeup || replacementSubmitting || groupMutationBusy}
                             onClick={() => openCoachReplacementDialog(group)}
                           >
                             เปลี่ยนโค้ชย้อนหลัง
@@ -1814,7 +1815,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             size="sm"
                             variant="outline"
                             className="h-9 border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
-                            disabled={!canMoveLearnerToExistingGroup || moveSubmitting || groupMutationBusy}
+                            disabled={groupHasMakeup || !canMoveLearnerToExistingGroup || moveSubmitting || groupMutationBusy}
                             onClick={() => openMoveLearnerDialog(group)}
                             title={!canMoveLearnerToExistingGroup ? 'ไม่พบกลุ่มโค้ชอื่นในรอบเดียวกัน' : undefined}
                           >
@@ -1824,7 +1825,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             size="sm"
                             variant="outline"
                             className="h-9 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
-                            disabled={!groupNeedsAttendanceReview || groupMutationBusy}
+                            disabled={groupHasMakeup || !groupNeedsAttendanceReview || groupMutationBusy}
                             onClick={() => openRoundAttendanceDialog(group)}
                             title={!groupNeedsAttendanceReview ? 'รอบนี้ไม่มีรายการที่ต้องบันทึก attendance ย้อนหลังแล้ว' : undefined}
                           >
@@ -1834,7 +1835,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             size="sm"
                             variant="outline"
                             className="h-9 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                            disabled={groupMutationBusy}
+                            disabled={groupHasMakeup || groupMutationBusy}
                             onClick={() => void closeReviewGroup(group)}
                           >
                             ปิดเคสทั้งรอบ
@@ -1845,6 +1846,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                   </div>
 
                   <div className="px-3 pt-3">
+                    {groupHasMakeup && <p className="mb-2 text-xs text-violet-800">รอบนี้มีผู้เรียนชดเชย ให้ส่งกลับโค้ชเพื่อเช็คอินและเช็คชื่อ ปุ่มจัดการย้อนหลังอื่นยังไม่รองรับรอบชดเชย</p>}
                     {isUnassignedRound ? (
                       <p className="text-xs text-amber-800">รอบนี้ยังไม่มีโค้ชในกลุ่ม ให้จัดการจากปุ่มทั้งรอบด้านบนเท่านั้น เพื่อไม่ให้ผลรายคนหลุดจากรอบเดียวกัน</p>
                     ) : (
@@ -1873,6 +1875,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             ) : (
                               <Badge variant="outline" className="bg-orange-50 text-orange-700">รอตรวจสอบ</Badge>
                             )}
+                            {session.is_makeup && <Badge variant="outline" className="bg-violet-50 text-violet-700">รอบชดเชย</Badge>}
                             {session.group_name && (
                               <Badge variant="outline" className="bg-gray-50 text-gray-600">{session.group_name}</Badge>
                             )}

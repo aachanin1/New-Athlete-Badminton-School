@@ -1,5 +1,5 @@
 import {formatThaiDateWithWeekday} from '@/lib/date-format'
-import {getReviewGroupKey,isReviewOrEvidenceSession,isAttendanceReviewSession,isCoachEvidenceReviewSession,isMissedSession,type BookingSessionData,type ReviewFilter} from '@/lib/admin-makeup-read-model'
+import {getReviewGroupKey,isReviewOrEvidenceSession,isAttendanceReviewSession,isMissingCoachEvidenceSession,isMissedSession,type BookingSessionData,type ReviewFilter} from '@/lib/admin-makeup-read-model'
 
 export function selectMakeupReview(sessions:BookingSessionData[],filter:ReviewFilter,page:number,pageSize:number,detail?:string) {
  const all=sessions.filter(isReviewOrEvidenceSession)
@@ -8,7 +8,7 @@ export function selectMakeupReview(sessions:BookingSessionData[],filter:ReviewFi
  const match=new Set(scoped.filter(s=>{
   if(filter.status==='no_coach'&&s.coach_name)return false
   if(filter.status==='waiting_attendance'&&!isAttendanceReviewSession(s))return false
-  if(filter.status==='coach_evidence'&&!isCoachEvidenceReviewSession(s))return false
+  if(filter.status==='coach_evidence'&&!isMissingCoachEvidenceSession(s))return false
   if(filter.status==='coach_requested'&&!s.coach_review_requested_count)return false
   const query=filter.search.trim().toLowerCase()
   return !query||[s.learner_name,s.user_name,s.coach_name||'',s.branch_name,s.course_type,formatThaiDateWithWeekday(s.date)].some(v=>v.toLowerCase().includes(query))
@@ -18,7 +18,7 @@ export function selectMakeupReview(sessions:BookingSessionData[],filter:ReviewFi
  const ordered=[...groups.values()].sort((a,b)=>Number(b.some(target))-Number(a.some(target))||b[0].date.localeCompare(a[0].date)||b[0].start_time.localeCompare(a[0].start_time))
  const selected=ordered.slice((page-1)*pageSize,page*pageSize),found=detail?selected.find(rows=>getReviewGroupKey(rows[0])===detail):null
  return {sessions:detail?found||[]:selected.map(rows=>rows.find(target)||rows[0]),detailFound:!!found,groups:selected.map(rows=>({key:getReviewGroupKey(rows[0]),count:rows.length})),total:ordered.length,sessionTotal:ordered.flat().length,
-  stats:{review:all.length,reviewNoCoach:all.filter(s=>!s.coach_name).length,reviewCoachEvidence:all.filter(isCoachEvidenceReviewSession).length}}
+  stats:{review:all.length,reviewNoCoach:all.filter(s=>!s.coach_name).length,reviewCoachEvidence:all.filter(isMissingCoachEvidenceSession).length}}
 }
 
 export function selectLegacyMakeup(sessions:BookingSessionData[],linked:BookingSessionData[],filter:ReviewFilter,page:number,pageSize:number,effective:boolean) {
