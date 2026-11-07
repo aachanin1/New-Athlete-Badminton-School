@@ -61,6 +61,7 @@ export async function loadPreviousBookings(actor: string): Promise<PreviousBooki
 export function checkoutError(error: unknown) {
   const source = error instanceof Error ? error.message : ''
   const messages: Record<string, string> = {
+    PROGRESSIVE_BOOKING_CONFLICT: 'พบข้อมูลชุดราคาของรายการเดิมไม่สอดคล้องกัน กรุณาติดต่อเจ้าหน้าที่เพื่อตรวจสอบ',
     BOOKING_UX_LEARNER_ADDITION_ONLY: 'กรุณาคงผู้เรียนเดิมไว้ และเลือกผู้เรียนที่ต้องการเพิ่มก่อนบันทึก',
     BOOKING_UX_LEARNER_ROUND_REQUIRED: 'กรุณาเลือกวันและรอบเรียนให้ผู้เรียนที่เลือกครบทุกคน',
     BOOKING_UX_QUOTE_CHANGED: 'ยอดเงินหรือเงื่อนไขคูปองเปลี่ยนแล้ว กรุณาตรวจยอดล่าสุดก่อนบันทึกอีกครั้ง',
