@@ -17,11 +17,11 @@ try{
  await page.goto(base+'/admin/notifications',{timeout:120000});await expect(page.getByRole('tab',{name:'Inbox Admin',exact:true})).toBeVisible({timeout:120000})
  const titles=post?fixture.expectedTitles:[...new Set(fixture.records.map(r=>r.notices[0].title))]
  for(const title of titles){
-  await page.getByRole('tab',{name:'ประวัติทั้งหมด',exact:true}).click();await page.getByPlaceholder('ค้นหาหัวข้อ, ข้อความ, ผู้รับ...').fill(title)
+  const historyTab=page.getByRole('tab',{name:'ประวัติทั้งหมด',exact:true});await historyTab.click();await expect(historyTab).toHaveAttribute('aria-selected','true');await page.getByPlaceholder('ค้นหาหัวข้อ, ข้อความ, ผู้รับ...').fill(title)
   const entry=page.getByText(title,{exact:true}).first();await expect(entry).toBeVisible();const box=await entry.boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=431)
   checks.push('Mobile full list shows '+title)
  }
- await page.getByRole('tab',{name:'Inbox Admin',exact:true}).click();await expect(page.getByText(titles[0],{exact:true}).first()).toBeVisible();checks.push('Compact Admin inbox shows actual stored actor title')
+ const inboxTab=page.getByRole('tab',{name:'Inbox Admin',exact:true});await inboxTab.click();await expect(inboxTab).toHaveAttribute('aria-selected','true');await expect(page.locator('#admin-inbox').getByText(titles[0],{exact:true}).first()).toBeVisible();checks.push('Compact Admin inbox shows actual stored actor title')
  assert.equal(errors.length,0,errors.join('\n'));checks.push('No browser runtime errors')
  const out=root+'/'+(post?'production':'local')+'-browser-'+Date.now();await page.screenshot({path:out+'.png',fullPage:true});fs.writeFileSync(out+'.json',JSON.stringify({passed:true,checks,errors,base,definitionHash:createHash('sha256').update(fs.readFileSync(import.meta.filename)).digest('hex')},null,2));console.log(JSON.stringify({passed:true,count:checks.length,out}))
 }finally{await context.close();await browser.close();await auth.auth.signOut()}
