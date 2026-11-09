@@ -7,7 +7,7 @@ import { Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ADMIN_MENU_PERMISSION_SETTING_KEY, type AdminMenuItem, type AdminMenuKey } from '@/lib/admin-navigation'
+import { ADMIN_MENU_PERMISSION_SETTING_KEY, ADMIN_REQUIRED_MENU_KEYS, getAllowedAdminMenuKeys, type AdminMenuItem, type AdminMenuKey } from '@/lib/admin-navigation'
 
 interface AdminMenuPermissionsClientProps {
   menuItems: AdminMenuItem[]
@@ -21,7 +21,7 @@ export function AdminMenuPermissionsClient({
   hasSetting,
 }: AdminMenuPermissionsClientProps) {
   const router = useRouter()
-  const [allowedKeys, setAllowedKeys] = useState<AdminMenuKey[]>(initialAllowedMenuKeys)
+  const [allowedKeys, setAllowedKeys] = useState<AdminMenuKey[]>(() => getAllowedAdminMenuKeys({ adminAllowedMenuKeys: initialAllowedMenuKeys }))
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +30,7 @@ export function AdminMenuPermissionsClient({
   const enabledCount = editableItems.filter((item) => allowedKeys.includes(item.key)).length
 
   const toggleMenu = (key: AdminMenuKey, checked: boolean) => {
-    if (key === 'dashboard') return
+    if (ADMIN_REQUIRED_MENU_KEYS.includes(key)) return
 
     setAllowedKeys((current) => {
       if (checked) {
@@ -47,7 +47,7 @@ export function AdminMenuPermissionsClient({
     setError(null)
 
     try {
-      const normalizedKeys = Array.from(new Set<AdminMenuKey>(['dashboard', ...allowedKeys]))
+      const normalizedKeys = getAllowedAdminMenuKeys({ adminAllowedMenuKeys: allowedKeys })
       const response = await fetch('/api/admin/settings', {
         method: hasSetting ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +88,7 @@ export function AdminMenuPermissionsClient({
           <p className="mt-1 text-sm text-gray-500">
             เลือกเมนูที่ Admin ธรรมดาสามารถเห็นและเข้าใช้งานได้ ส่วนเมนูตั้งค่าหลักยังเป็นของ Super Admin เท่านั้น
           </p>
+          <p className="mt-1 text-sm text-gray-500">ภาพรวม ตารางเรียน และแจ้งเตือนเป็นเมนูจำเป็นที่เปิดไว้เสมอ</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -123,7 +124,7 @@ export function AdminMenuPermissionsClient({
                 <Checkbox
                   id={`menu-${item.key}`}
                   checked={checked}
-                  disabled={locked}
+                  disabled={locked || saving}
                   onCheckedChange={(value) => toggleMenu(item.key, value === true)}
                 />
                 <label

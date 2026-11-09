@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logActivity } from '@/lib/activity-log'
-import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { readAdminScheduleTemplates } from '@/lib/admin-schedule-template-read'
 
 export async function GET(request:NextRequest){
- const admin=await requireSuperAdminUser();if(!admin)return NextResponse.json({error:'ไม่มีสิทธิ์จัดการรอบเรียน'},{status:403})
+ const access=await requireAdminMenuAccess('schedule_templates');if(!access.ok)return NextResponse.json({error:access.message},{status:access.status})
  const q=request.nextUrl.searchParams,page=Number(q.get('page')||1),branch=q.get('branch')||'all'
  if(!Number.isInteger(page)||page<1||page>10000||(q.get('search')||'').length>200||!['all','kids_group','adult_group','private'].includes(q.get('course')||'all')||!['all','active','inactive'].includes(q.get('status')||'active')||branch!=='all'&&!/^[0-9a-f-]{36}$/i.test(branch))return NextResponse.json({error:'ข้อมูลตัวกรองไม่ถูกต้อง'},{status:400})
  try{return NextResponse.json(await readAdminScheduleTemplates(q),{headers:{'Cache-Control':'private, no-store'}})}catch{return NextResponse.json({error:'อ่านรอบเรียนไม่สำเร็จ กรุณาลองใหม่'},{status:503})}
@@ -86,8 +86,9 @@ function validatePayload(payload: TemplatePayload, mode: 'create' | 'update') {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = await requireSuperAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('schedule_templates')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx
 
   try {
     const payload = await request.json() as TemplatePayload
@@ -176,8 +177,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const admin = await requireSuperAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('schedule_templates')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx
 
   try {
     const payload = await request.json() as TemplatePayload
@@ -219,8 +221,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const admin = await requireSuperAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('schedule_templates')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx
 
   try {
     const templateId = request.nextUrl.searchParams.get('id')

@@ -23,7 +23,7 @@ import { PACKAGE_DATE_ERROR } from '@/lib/booking-package-validity'
 
 export interface Bill {
   id: string; status: string; total_price: number; total_sessions: number; branch_id: string; pricing_scope_id: string | null
-  checkout_version?: number; package_snapshot?: { quantity: number; validity_months: number } | null
+  checkout_version?: number; package_snapshot?: import('@/lib/booking-purchase').BookingPurchaseTerms | null
   package_expiry?: string | null; package_expiry_estimated?: boolean; package_dates_valid?: boolean
   package_participants?:Array<string|null>|null
   coupon_code?:string|null;coupon_gross?:number;coupon_discount?:number;coupon_state?:'reserved'|'consumed'|'released'|null

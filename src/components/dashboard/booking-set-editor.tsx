@@ -8,6 +8,7 @@ import { BookingFlowSteps, BookingCalendarHeading, BookingLearnerTabs } from './
 import {formatThaiDateWithWeekday} from '@/lib/date-format'
 import {packageExpiryAt,packageRoundWithinExpiry,packageValidityDescription,PACKAGE_DATE_ERROR} from '@/lib/booking-package-validity'
 import {checkoutRequest,paymentTimeLeft} from '@/lib/booking-checkout'
+import {isPerSessionPurchase,isBillSinglePurchase} from '@/lib/booking-purchase'
 import {getTemplateSlots,type ScheduleTemplateOption} from '@/lib/schedule-template-utils'
 import type {CourseTypeName} from '@/types/database'
 import type {PaymentState,Bill} from './booking-payment-client'
@@ -34,9 +35,9 @@ export function BookingSetEditor({url,onDone,onBack}:{url:string;onDone:()=>void
  const [now,setNow]=useState(Date.now()),clockOffset=useRef(0),quoteGeneration=useRef(0)
  const deadline=data?.bookings.map(b=>b.lifecycle?.deadline).filter((v):v is string=>Boolean(v)).sort()[0]
  const expired=Boolean(deadline&&Date.parse(deadline)<=now),locked=busy||unknown||expired
- const invalidRounds=Boolean(data?.bookings.some(b=>(rounds[b.id]||[]).some(r=>!packageRoundWithinExpiry(b.package_expiry||packageExpiryAt(b.package_snapshot,data.serverNow),r.date,r.endTime))))
+ const invalidRounds=Boolean(data?.bookings.some(b=>(rounds[b.id]||[]).some(r=>!packageRoundWithinExpiry(b.package_expiry||packageExpiryAt(b.package_snapshot,data.serverNow),r.date,r.endTime)||(!b.package_snapshot||isPerSessionPurchase(b.package_snapshot))&&r.date.slice(0,7)!==(b.package_snapshot?.lessonMonth||String(b.year)+'-'+String(b.month).padStart(2,'0')))))
  const missingLearners=useMemo(()=>data?.bookings.flatMap(b=>b.course_types?.name==='kids_group'?(membersByBill[b.id]||originalMembersByBill[b.id]||[]).filter(id=>!(rounds[b.id]||[]).some(r=>(r.childId||'self')===id)).map(id=>({billId:b.id,id})):[])||[],[data,membersByBill,originalMembersByBill,rounds])
- const missing=Boolean(missingLearners.length||data?.bookings.some(b=>(!b.package_snapshot||b.total_sessions===1)&&!rounds[b.id]?.length))
+ const missing=Boolean(missingLearners.length||data?.bookings.some(b=>(!b.package_snapshot||isPerSessionPurchase(b.package_snapshot))&&!rounds[b.id]?.length))
  const editInput=useMemo(()=>data?{action:'edit',token:data.editor.token,bookingIds:data.bookings.map(b=>b.id),edits:data.bookings.map(b=>({id:b.id,sessions:rounds[b.id]||[],...((b.course_types?.name==='kids_group'&&!(originalMembersByBill[b.id]||[]).includes('self')||b.course_types?.name==='adult_group'||b.course_types?.name==='private'&&b.package_snapshot)?{participants:(b.course_types?.name==='adult_group'?['self']:membersByBill[b.id]||originalMembersByBill[b.id]||[]).map(id=>id==='self'?null:id)}:{})})),couponChanges:data.bookings.map(b=>couponChanges[b.id]||{bookingId:b.id,action:'keep' as const})}:null,[data,rounds,couponChanges,membersByBill,originalMembersByBill])
  const inputKey=JSON.stringify(editInput),currentPreview=quotedKey===inputKey?preview:null
  const currentQuoteError=quoteError?.key===inputKey?quoteError.message:''
@@ -81,8 +82,15 @@ export function BookingSetEditor({url,onDone,onBack}:{url:string;onDone:()=>void
  const courseTitle=(c:string)=>c==='kids_group'?'กลุ่มเด็ก':c==='private'?'Private':'กลุ่มผู้ใหญ่'
  const eligible=courseBills.filter(b=>course!=='kids_group'||(membersByBill[b.id]||originalMembersByBill[b.id]||[]).includes(activeLearner))
  const expiryByBill=new Map(eligible.map(b=>[b.id,b.package_expiry||packageExpiryAt(b.package_snapshot,data.serverNow)]))
- const expiryMonths=eligible.map(b=>expiryByBill.get(b.id)).filter((v):v is string=>Boolean(v))
- const lastMonth=expiryMonths.length===eligible.length&&expiryMonths.length?new Date(Math.max(...expiryMonths.map(Date.parse))+7*3600000).toISOString().slice(0,7):null
+ const allowedMonths=[...new Set(courseBills.flatMap(b=>{
+   const source=b.package_snapshot?.lessonMonth||String(b.year)+'-'+String(b.month).padStart(2,'0')
+   if(!b.package_snapshot||isPerSessionPurchase(b.package_snapshot))return [source]
+   const end=(expiryByBill.get(b.id)||packageExpiryAt(b.package_snapshot,data.serverNow))?.slice(0,7)
+   if(!end)return []
+   const start=data.serverNow.slice(0,7),[y,m]=start.split('-').map(Number)
+   return Array.from({length:120},(_,i)=>new Date(Date.UTC(y,m-1+i,1)).toISOString().slice(0,7)).filter(key=>key<=end)
+ }))].sort()
+ const previousMonth=allowedMonths.filter(key=>key<viewMonth).at(-1),nextMonth=allowedMonths.find(key=>key>viewMonth)
  const visibleRounds=courseBills.flatMap(b=>(rounds[b.id]||[]).filter(r=>course!=='kids_group'||(r.childId||'self')===activeLearner))
  const unitCounts=data.bookings.reduce((totals,bill)=>{
   const unitKey=(r:Round)=>[r.date,r.startTime.slice(0,5),r.endTime.slice(0,5),r.branchId,bill.course_types?.name==='private'?'family':r.childId||'self'].join('|')
@@ -90,12 +98,12 @@ export function BookingSetEditor({url,onDone,onBack}:{url:string;onDone:()=>void
   const previous=new Set(original.map(unitKey)),current=new Set((rounds[bill.id]||[]).map(unitKey))
   return{all:totals.all+current.size,removed:totals.removed+[...previous].filter(key=>!current.has(key)).length,added:totals.added+[...current].filter(key=>!previous.has(key)).length}
  },{all:0,removed:0,added:0})
- const slotsFor=(date:string,branchId:string)=>getTemplateSlots(templates,data.branches.find(b=>b.id===branchId)?.slug||'',course as CourseTypeName,new Date(date+'T12:00:00Z').getUTCDay(),date).filter(s=>Date.parse(date+'T'+s.start+':00+07:00')>Math.max(...eligible.map(b=>Date.parse(b.lifecycle.deadline||data.serverNow)),Date.parse(data.serverNow))&&eligible.some(b=>packageRoundWithinExpiry(expiryByBill.get(b.id),date,s.end)))
+ const slotsFor=(date:string,branchId:string)=>getTemplateSlots(templates,data.branches.find(b=>b.id===branchId)?.slug||'',course as CourseTypeName,new Date(date+'T12:00:00Z').getUTCDay(),date).filter(s=>Date.parse(date+'T'+s.start+':00+07:00')>Math.max(...eligible.map(b=>Date.parse(b.lifecycle.deadline||data.serverNow)),Date.parse(data.serverNow))&&eligible.some(b=>packageRoundWithinExpiry(expiryByBill.get(b.id),date,s.end)&&(Boolean(b.package_snapshot&&!isPerSessionPurchase(b.package_snapshot))||date.slice(0,7)===(b.package_snapshot?.lessonMonth||String(b.year)+'-'+String(b.month).padStart(2,'0')))))
  const toggle=(date:string,branchId:string,slot:{start:string;end:string;templateId?:string})=>{
    if(locked)return
    const existing=eligible.find(b=>(rounds[b.id]||[]).some(r=>r.date===date&&r.branchId===branchId&&r.startTime===slot.start&&(course!=='kids_group'||r.childId===activeLearner)))
    if(existing){setRounds(prev=>({...prev,[existing.id]:prev[existing.id].filter(r=>!(r.date===date&&r.branchId===branchId&&r.startTime===slot.start&&(course!=='kids_group'||r.childId===activeLearner)))}));setPreview(null);setError('');return}
-   const candidates=eligible.filter(b=>packageRoundWithinExpiry(expiryByBill.get(b.id),date,slot.end)&&(!b.package_snapshot||groupRounds(rounds[b.id],course==='private').length<b.total_sessions)).sort((a,b)=>{
+   const candidates=eligible.filter(b=>packageRoundWithinExpiry(expiryByBill.get(b.id),date,slot.end)&&(Boolean(b.package_snapshot&&!isPerSessionPurchase(b.package_snapshot))||date.slice(0,7)===(b.package_snapshot?.lessonMonth||String(b.year)+'-'+String(b.month).padStart(2,'0')))&&(!b.package_snapshot||isBillSinglePurchase(b.package_snapshot)||groupRounds(rounds[b.id],course==='private').length<b.total_sessions)).sort((a,b)=>{
      const deficit=(x:Bill)=>data.sessions.filter(s=>s.booking_id===x.id).length-(rounds[x.id]||[]).length
      return deficit(b)-deficit(a)||(rounds[a.id]||[]).length-(rounds[b.id]||[]).length
    })
@@ -104,7 +112,7 @@ export function BookingSetEditor({url,onDone,onBack}:{url:string;onDone:()=>void
    setRounds(prev=>({...prev,[bill.id]:[...prev[bill.id],...members.map(id=>({date,startTime:slot.start,endTime:slot.end,branchId,childId:id==='self'?null:id,scheduleTemplateId:slot.templateId}))]}));setPreview(null);setError('')
  }
  const [year,month]=viewMonth.split('-').map(Number),days=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>viewMonth+'-'+String(i+1).padStart(2,'0'))
- const move=(delta:number)=>{if(locked||delta>0&&lastMonth&&viewMonth>=lastMonth)return;setViewMonth(new Date(Date.UTC(year,month-1+delta,1)).toISOString().slice(0,7));setExpanded(null)}
+ const move=(delta:number)=>{const target=delta<0?previousMonth:nextMonth;if(locked||!target)return;setViewMonth(target);setExpanded(null)}
  const chooseCoupon=(bookingId:string,action:CouponChange['action'],code?:string)=>{if(locked)return;setCouponChanges(previous=>({...previous,[bookingId]:{bookingId,action,...(code?{code}:{})}}));setCouponInputs(previous=>({...previous,[bookingId]:''}));setError('')}
  const billNames=(bill:Bill)=>(membersByBill[bill.id]||originalMembersByBill[bill.id]||[]).map(name).join(', ')
  const learnerOptions=data.learners.map(learner=>({id:learner.id,label:formatLearnerDisplayName({fullName:learner.full_name,nickname:learner.nickname})}))
@@ -145,11 +153,11 @@ export function BookingSetEditor({url,onDone,onBack}:{url:string;onDone:()=>void
      <BookingChoice disabled={locked} title="สาขา" options={data.branches.filter(b=>b.is_active||selectedBranches.includes(b.id)).map(b=>({id:b.id,label:b.name}))} selected={selectedBranches} removalCount={ids=>courseBills.reduce((n,b)=>n+groupRounds(rounds[b.id],b.course_types?.name==='private').filter(g=>!ids.includes(g.round.branchId)).length,0)} onApply={ids=>{setSelectedBranches(ids);setRounds(prev=>Object.fromEntries(data.bookings.map(b=>[b.id,b.course_type_id===activeCourse?prev[b.id].filter(r=>ids.includes(r.branchId)):prev[b.id]])));setExpanded(null);setPreview(null)}}/>
    </div>
    <div className="space-y-4">
-   {eligible.filter(b=>b.package_snapshot).map(b=><p key={b.id} className="rounded-xl bg-blue-50 p-3 text-sm" data-testid={'editor-package-expiry-'+b.id}>แพ็กเกจ {b.total_sessions} {course==='private'?'ชั่วโมง':'ครั้ง'} · {packageValidityDescription(b.package_snapshot!,data.serverNow)}</p>)}
+   {eligible.filter(b=>b.package_snapshot).map(b=><p key={b.id} className="rounded-xl bg-blue-50 p-3 text-sm" data-testid={'editor-package-expiry-'+b.id}>{isPerSessionPurchase(b.package_snapshot)?'รายครั้ง':'แพ็กเกจ'} {isBillSinglePurchase(b.package_snapshot)?groupRounds(rounds[b.id]||[],course==='private').length:b.total_sessions} {course==='private'?'ชั่วโมง':'ครั้ง'} · {packageValidityDescription(b.package_snapshot!,data.serverNow)}</p>)}
    {invalidRounds&&<p role="alert" className="text-sm font-semibold text-red-700">{PACKAGE_DATE_ERROR} แตะรอบที่เลือกเพื่อนำออกแล้วเลือกวันใหม่</p>}
    {missingLearners.length>0&&<p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" data-testid="booking-edit-missing-learner-rounds">เลือกวันเรียนอย่างน้อย 1 รอบให้ {([...new Set(missingLearners.map(learner=>learner.id))]).map(name).join(', ')}</p>}
    <BookingCalendarHeading title={selectedBranches.map(branchName).join(', ')} month={new Date(year,month-1,1).toLocaleDateString('th-TH',{month:'long',year:'numeric'})}
-     previousDisabled={locked||viewMonth<=data.serverNow.slice(0,7)||!courseBills.every(b=>b.package_snapshot)} nextDisabled={locked||!courseBills.every(b=>b.package_snapshot)||Boolean(lastMonth&&viewMonth>=lastMonth)} onPrevious={()=>move(-1)} onNext={()=>move(1)} />
+     previousDisabled={locked||!previousMonth} nextDisabled={locked||!nextMonth} onPrevious={()=>move(-1)} onNext={()=>move(1)} />
    {course==='kids_group'&&<BookingLearnerTabs learners={participantIds.map(id=>({id,name:name(id),count:courseBills.flatMap(b=>rounds[b.id]||[]).filter(r=>(r.childId||'self')===id).length}))} activeId={activeLearner} disabled={locked} onChange={id=>{setActiveLearner(id);setExpanded(null)}} />}
    <BookingCalendar invalid={missing} onDay={date=>{if(!locked)setExpanded(expanded===date?null:date)}} days={days.map(date=>({date,selectable:!locked&&(selectedBranches.some(id=>slotsFor(date,id).length>0)||visibleRounds.some(r=>r.date===date)),selected:visibleRounds.some(r=>r.date===date),expanded:expanded===date,selectedCount:courseBills.reduce((total,b)=>total+groupRounds((rounds[b.id]||[]).filter(r=>r.date===date&&(course!=='kids_group'||(r.childId||'self')===activeLearner)),course==='private').length,0),existing:[]}))}>
      {expanded&&<div className="mt-4 space-y-3 rounded-lg border bg-gray-50 p-3"><p className="text-sm font-medium"><CalendarDays className="mr-1 inline h-4 w-4"/>{formatThaiDateWithWeekday(expanded)} — เลือกรอบเรียน:</p>

@@ -1,5 +1,6 @@
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { loadKidsPricingCatalogs } from '@/lib/booking-pricing-policy'
+import { loadBookingPackages } from '@/lib/booking-checkout-server'
 
 export interface AdminPricingTier {
   id: string
@@ -26,13 +27,14 @@ export async function readAdminCurrentPricing(actor: string): Promise<AdminPrici
 
 /** Both settings entry points must show the same authoritative, fail-closed data. */
 export async function loadAdminPricingSettings(actor: string) {
-  const [pricing, kids] = await Promise.allSettled([
-    readAdminCurrentPricing(actor), loadKidsPricingCatalogs(getServiceRoleClient(), actor),
+  const [pricing, kids, packages] = await Promise.allSettled([
+    readAdminCurrentPricing(actor), loadKidsPricingCatalogs(getServiceRoleClient(), actor), loadBookingPackages(),
   ])
   return {
     initialPricing: pricing.status === 'fulfilled' ? pricing.value : null,
     pricingLoadError: pricing.status === 'rejected' ? 'อ่านราคาปัจจุบันไม่สำเร็จ กรุณาโหลดราคาล่าสุดก่อนแก้ไข' : undefined,
     kidsCatalogs: kids.status === 'fulfilled' ? kids.value : null,
     kidsCatalogError: kids.status === 'rejected' ? 'อ่านชุดราคาสองช่วงไม่สำเร็จ กรุณาโหลดข้อมูลใหม่' : undefined,
+    pricingPackages: packages.status === 'fulfilled' ? packages.value : null,
   }
 }

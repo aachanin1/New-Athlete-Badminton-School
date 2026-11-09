@@ -4,8 +4,10 @@ import { BookingFlowSteps, BookingCalendarHeading, BookingLearnerTabs, BookingRe
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { checkoutRequest, type BookingPackage } from '@/lib/booking-checkout'
+import { isPerSessionPurchase, isBillSinglePurchase, recommendBookingPackage } from '@/lib/booking-purchase'
 import { bangkokMonthKey, packageExpiryAt, packageRoundWithinExpiry, packageValidityDescription, PACKAGE_DATE_ERROR, PACKAGE_DURATION_RULE } from '@/lib/booking-package-validity'
 import { BookingCalendar } from '@/components/dashboard/booking-calendar'
+import { BookingPackageRecommendation } from './booking-package-recommendation'
 import type { PreviousBooking } from '@/lib/booking-previous'
 import { BookingChoice } from '@/components/dashboard/booking-choice'
 import { Input } from '@/components/ui/input'
@@ -148,7 +150,7 @@ type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
 
 interface BookingDraft {
   packageId?: string
-  version: 2
+  version: 3
   step: Step
   courseType: CourseTypeName | null
   learnerType: 'self' | 'child' | null
@@ -213,7 +215,7 @@ interface FingerprintedAvailability {
   availability: BookingAvailabilitySnapshot
 }
 
-const BOOKING_DRAFT_VERSION = 2
+const BOOKING_DRAFT_VERSION = 3
 const STEP_ORDER: Step[] = ['type', 'learner', 'branch', 'calendar', 'summary']
 
 const STEPS: { key: Step; label: string }[] = [
@@ -463,8 +465,11 @@ function sanitizeBookingDraft(
   return { ...draft, step: getSafeStep(value.step, draft) }
 }
 
-export function BookingClient({ todayBangkok, serverNow, userId, userName, learnerChildren: initialLearnerChildren, packages, previousBookings = [], branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError, initialKidsPricingErrorCode, initialKidsPricingMonth }: BookingClientProps) {
+export function BookingClient({ todayBangkok, serverNow, userId, userName, learnerChildren: initialLearnerChildren, packages: initialPackages, previousBookings = [], branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError, initialKidsPricingErrorCode, initialKidsPricingMonth }: BookingClientProps) {
   const router = useRouter()
+  const [packages, setPackages] = useState(initialPackages)
+  useEffect(() => { setPackages(initialPackages) }, [initialPackages])
+  const [comparison, setComparison] = useState<{ fingerprint: string; pack: BookingPackage } | null>(null)
   const [learnerChildren, setLearnerChildren] = useState(initialLearnerChildren)
   const [packageId, setPackageId] = useState(editBooking ? packages.find(p => p.quantity === editBooking.total_sessions && p.course === editBooking.course_types?.name)?.id || '' : '')
   const [childName, setChildName] = useState('')
@@ -505,6 +510,8 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
   // Booking state
   const [courseType, setCourseType] = useState<CourseTypeName | null>(editCourseTypeName || null)
   const selectedPackage = editBooking?.package_snapshot || packages.find(p => p.id === packageId && p.course === courseType)
+  const singleSelection = isPerSessionPurchase(selectedPackage)
+  const multiSingleSelection = singleSelection && (!isEditMode || isBillSinglePurchase(editBooking?.package_snapshot))
   const serverClockOffset = useRef(Date.parse(serverNow || todayBangkok + 'T12:00:00+07:00') - Date.now())
   const [packageMonth, setPackageMonth] = useState(todayBangkok.slice(0, 7))
   useEffect(() => {
@@ -791,17 +798,19 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
   // Incremental pricing for kids_group
   const kidsIncremental = useMemo(() => {
     if (courseType !== 'kids_group' || allSelectedSessions.length === 0) return null
-    return getKidsGroupIncremental(existingMonthData.sessions, existingMonthData.paid, allSelectedSessions.length, pricingTiers as PricingTierInput[])
-  }, [courseType, allSelectedSessions.length, existingMonthData, pricingTiers])
+    const perBill = (previewRecord?.preview.policy || initialKidsPricingPolicy)?.pricingMode === 'per_bill_v1'
+    return getKidsGroupIncremental(perBill ? 0 : existingMonthData.sessions, perBill ? 0 : existingMonthData.paid, allSelectedSessions.length, pricingTiers as PricingTierInput[])
+  }, [courseType, allSelectedSessions.length, existingMonthData, pricingTiers, previewRecord?.preview.policy, initialKidsPricingPolicy])
 
   const pricing = useMemo(() => {
     if (!courseType || allSelectedSessions.length === 0) return null
     if (courseType === 'kids_group' && kidsIncremental) {
       return { total: kidsIncremental.incrementalPrice, perSession: kidsIncremental.perSession, tierLabel: kidsIncremental.tierLabel }
     }
+    if (multiSingleSelection && selectedPackage) return { total: allSelectedSessions.length * (selectedPackage.unitRate ?? selectedPackage.price), perSession: selectedPackage.unitRate ?? selectedPackage.price, tierLabel: courseType === 'private' ? 'รายชั่วโมง' : 'รายครั้ง' }
     if (courseType === 'adult_group') return getAdultGroupTotal(allSelectedSessions.length, pricingTiers as PricingTierInput[])
     return getPrivateTotal(allSelectedSessions.length, pricingTiers as PricingTierInput[])
-  }, [courseType, allSelectedSessions.length, kidsIncremental, pricingTiers])
+  }, [courseType, allSelectedSessions.length, kidsIncremental, pricingTiers, multiSingleSelection, selectedPackage])
 
   // Total price for entire batch (incremental for kids, normal for others)
   const totalBatchPrice = useMemo(() => {
@@ -810,7 +819,8 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
     return pricing.total
   }, [pricing, courseType, kidsIncremental])
 
-  const bookingSessionCount = isEditMode && !editBooking?.package_snapshot ? (courseType === 'private' ? (sessionsMap.self || []).length : allSelectedSessions.length) : courseType !== 'kids_group' && selectedPackage ? selectedPackage.quantity : allSelectedSessions.length
+  const bookingSessionCount = multiSingleSelection ? (sessionsMap.self || []).length : isEditMode && !editBooking?.package_snapshot ? (courseType === 'private' ? (sessionsMap.self || []).length : allSelectedSessions.length) : courseType !== 'kids_group' && selectedPackage ? selectedPackage.quantity : allSelectedSessions.length
+  const recommendedPackage = singleSelection && !isEditMode && courseType ? recommendBookingPackage(packages, courseType, bookingSessionCount) : null
   const selectedCourseType = useMemo(
     () => courseTypes.find((courseTypeRow) => courseTypeRow.name === courseType) || null,
     [courseType, courseTypes],
@@ -858,10 +868,12 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
       })))
       .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
     packageId,
+    packageRevision: selectedPackage?.revision,
     couponId: appliedCoupon?.id || null,
   }), [
     appliedCoupon?.id,
     packageId,
+    selectedPackage?.revision,
     calMonth,
     calYear,
     courseType,
@@ -875,6 +887,22 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
     selectedChildIds,
     sessionsMap,
   ])
+  const authoritativePreviewForComparison = previewRecord?.fingerprint === previewFingerprint ? previewRecord.preview.grossPrice : null
+  const recommendedPackageId = recommendedPackage?.id
+  const comparisonFingerprint = JSON.stringify([previewFingerprint, authoritativePreviewForComparison])
+  useEffect(() => {
+    if (!recommendedPackageId || authoritativePreviewForComparison === null) return
+    const controller = new AbortController()
+    const fingerprint = comparisonFingerprint
+    void checkoutRequest<{ packages: BookingPackage[] }>('/api/booking-checkout?catalog=1', { signal: controller.signal }).then(result => {
+      if (controller.signal.aborted) return
+      const pack = result.packages.find(p => p.id === recommendedPackageId && p.quantity >= bookingSessionCount && p.quantity - bookingSessionCount <= 2)
+      setPackages(result.packages)
+      setComparison(pack ? { fingerprint, pack } : null)
+    }).catch(() => { if (!controller.signal.aborted) setComparison(null) })
+    return () => controller.abort()
+  }, [recommendedPackageId, comparisonFingerprint, authoritativePreviewForComparison, bookingSessionCount])
+
   const availabilityFingerprint = useMemo(() => JSON.stringify({
     bookingId: editBooking?.id || null,
     courseTypeId: selectedCourseType?.id || null,
@@ -917,6 +945,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         signal: controller.signal,
         body: JSON.stringify({
           bookingId: editBooking?.id || null,
+          packageId: selectedPackage?.id, packageRevision: selectedPackage?.revision,
           courseTypeId: selectedCourseType.id,
           month: calMonth + 1,
           year: calYear,
@@ -954,7 +983,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         setPreviewLoadingFingerprint(null)
       }
     }
-  }, [bookingSessionCount, calMonth, calYear, editBooking?.id, selectedCourseType])
+  }, [bookingSessionCount, calMonth, calYear, editBooking?.id, selectedCourseType, selectedPackage?.id, selectedPackage?.revision])
 
   const fetchAuthoritativeAvailability = useCallback(async (fingerprint: string) => {
     if (!selectedCourseType || availabilityCandidates.length === 0) {
@@ -1162,13 +1191,13 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
 
   useEffect(() => {
     const couponBasePrice = authoritativePreview?.grossPrice
-      ?? (courseType === 'kids_group' ? undefined : selectedPackage?.price ?? totalBatchPrice)
+      ?? (courseType === 'kids_group' ? undefined : multiSingleSelection ? totalBatchPrice : selectedPackage?.price ?? totalBatchPrice)
     if (couponBasePrice === 0 && appliedCoupon) {
       setAppliedCoupon(null)
       setCouponCode('')
       setCouponError(null)
     }
-  }, [appliedCoupon, authoritativePreview?.grossPrice, courseType, selectedPackage?.price, totalBatchPrice])
+  }, [appliedCoupon, authoritativePreview?.grossPrice, courseType, selectedPackage?.price, totalBatchPrice, multiSingleSelection])
 
   // Calendar helpers
   const calendarDays = useMemo(() => {
@@ -1304,7 +1333,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
     if (existing) {
       setSessionsMap((prev) => ({ ...prev, [key]: current.filter((s) => !(s.date === dateStr && s.start === slot.start && s.branchId === slotBranchId)) }))
     } else {
-      if (courseType !== 'kids_group' && selectedPackage && current.length >= selectedPackage.quantity) {
+      if (courseType !== 'kids_group' && selectedPackage && !multiSingleSelection && current.length >= selectedPackage.quantity) {
         setError(`แพ็กเกจนี้เลือกได้ ${selectedPackage.quantity} รอบ กรุณานำรอบเดิมออกก่อนเลือกวันใหม่`)
         return
       }
@@ -1406,7 +1435,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         if (courseType === 'private') return privateSelfAttend || selectedChildIds.length > 0
         return !!learnerType
       case 'branch': return selectedBranchIds.length > 0
-      case 'calendar': return selectedBranchIds.length > 0 && (courseType === 'kids_group' ? selectedChildIds.length > 0 && allSelectedSessions.length > 0 : (isEditMode && !editBooking?.package_snapshot ? allSelectedSessions.length > 0 : !!selectedPackage && (selectedPackage.quantity > 1 || allSelectedSessions.length > 0) && allSelectedSessions.length <= selectedPackage.quantity) && (courseType !== 'private' || privateSelfAttend || selectedChildIds.length > 0))
+      case 'calendar': return selectedBranchIds.length > 0 && (courseType === 'kids_group' ? selectedChildIds.length > 0 && allSelectedSessions.length > 0 : (isEditMode && !editBooking?.package_snapshot ? allSelectedSessions.length > 0 : !!selectedPackage && (selectedPackage.quantity > 1 || allSelectedSessions.length > 0) && (multiSingleSelection || allSelectedSessions.length <= selectedPackage.quantity)) && (courseType !== 'private' || privateSelfAttend || selectedChildIds.length > 0))
       default: return false
     }
   }
@@ -1474,7 +1503,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
       }
 
       // For private: total_sessions = unique time slots (not per-attendee records)
-      const bookingTotalSessions = courseType === 'kids_group' || isEditMode && !editBooking?.package_snapshot ? allSessions.length : selectedPackage?.quantity || allSessions.length
+      const bookingTotalSessions = multiSingleSelection ? (sessionsMap.self || []).length : courseType === 'kids_group' || isEditMode && !editBooking?.package_snapshot ? allSessions.length : selectedPackage?.quantity || allSessions.length
 
       const previousPreview = authoritativePreview
       const refreshedPreviewPromise = fetchAuthoritativePreview(previewFingerprint, appliedCoupon)
@@ -1558,6 +1587,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'create', requestId: clientRequestId, input: {
+            purchasePolicyVersion: 2,
             packageId: selectedPackage?.id, packageRevision: selectedPackage?.revision,
             participants: courseType === 'adult_group' ? [null] : [...(privateSelfAttend ? [null] : []), ...selectedChildIds],
             learnerType: isKids ? 'child' : (learnerType || 'self'),
@@ -1666,9 +1696,9 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
         <div className="space-y-6">
           <div className={"grid grid-cols-1 gap-4 rounded-xl md:grid-cols-3 " + (!courseType ? "border border-red-500 p-2" : "")}>
             {COURSE_TYPES.map((ct) => (
-              <Card key={ct.value} role="button" tabIndex={0} aria-pressed={courseType === ct.value} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.currentTarget.click()}}} className={`cursor-pointer transition-all hover:shadow-md ${courseType === ct.value ? 'border-2 border-[#2748bf] shadow-md' : 'border hover:border-[#2748bf]/30'}`}
+              <Card key={ct.value} role="button" tabIndex={draftReady ? 0 : -1} aria-disabled={!draftReady} aria-pressed={courseType === ct.value} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.currentTarget.click()}}} className={`cursor-pointer transition-all hover:shadow-md ${courseType === ct.value ? 'border-2 border-[#2748bf] shadow-md' : 'border hover:border-[#2748bf]/30'}`}
                 onClick={() => {
-                  if (courseType === ct.value) return
+                  if (!draftReady || courseType === ct.value) return
                   const previous=previousBookings.find(p=>p.course===ct.value)
                   const childIds=previous ? previous.participants.filter((id):id is string=>Boolean(id)&&learnerChildren.some(c=>c.id===id)) : ct.value==='kids_group'&&learnerChildren.length===1?[learnerChildren[0].id]:[]
                   const branchIds=previous ? previous.branchIds.filter(id=>branches.some(b=>b.id===id)) : branches.length===1?[branches[0].id]:[]
@@ -1692,7 +1722,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
             {packages.filter(p => p.course === courseType).map(p => <button type="button" key={p.id} data-testid={'package-' + p.id} aria-pressed={packageId === p.id}
               className={'rounded-xl border-2 p-5 text-left ' + (packageId === p.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')}
               onClick={() => { setPackageId(p.id); setSessionsMap({}) }}>
-              <p className="font-semibold">{p.quantity} {p.course === 'private' ? 'ชั่วโมง' : 'ครั้ง'}</p>
+              <p className="font-semibold">{p.quantity === 1 ? (p.course === 'private' ? 'รายชั่วโมง · เลือกได้หลายชั่วโมง' : 'รายครั้ง · เลือกได้หลายครั้ง') : p.quantity + (p.course === 'private' ? ' ชั่วโมง' : ' ครั้ง')}</p>
               <p className="my-2 text-2xl font-bold text-[#153c85]">฿{p.price.toLocaleString()}</p>
               <p className="text-sm text-gray-600">{packageValidityDescription(p, packageReference)}</p>
             </button>)}
@@ -1709,7 +1739,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b text-left text-gray-500">
-                            <th className="pb-2 pr-4">จำนวนครั้ง/เดือน</th>
+                            <th className="pb-2 pr-4">{kidsPolicy.pricingMode === 'per_bill_v1' ? 'จำนวนครั้งในบิล' : 'จำนวนครั้ง/เดือน'}</th>
                             <th className="pb-2 pr-4 text-right">ราคา/ครั้ง</th>
                             <th className="pb-2 text-right">ตัวอย่าง (7 ครั้ง)</th>
                           </tr>
@@ -1717,7 +1747,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                         <tbody>
                           {getKidsGroupTiers(pricingTiers as PricingTierInput[]).map((t) => (
                             <tr key={t.min} className="border-b last:border-0">
-                              <td className="py-2 pr-4 font-medium">{t.label}</td>
+                              <td className="py-2 pr-4 font-medium">{kidsPolicy.pricingMode === 'per_bill_v1' ? t.label.replace('/เดือน', '/บิล') : t.label}</td>
                               <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.per_session} บาท</td>
                               <td className="py-2 text-right text-gray-500">
                                 {t.min <= 7 && (t.max === null || t.max >= 7) ? `${(t.per_session * 7).toLocaleString()} บาท` : '-'}
@@ -1827,16 +1857,17 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
 
       {/* Step 4: Calendar — เลือกวันเรียน */}
       {step === 'calendar' && hasCalendarLearner && selectedPackage && (!isEditMode || editBooking?.package_snapshot) && <section className="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">
-        <p className="font-semibold">ซื้อ {selectedPackage.quantity} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'} · เลือกแล้ว {(sessionsMap.self || []).length} · คงเหลือ {selectedPackage.quantity - (sessionsMap.self || []).length}</p>
+        <p className="font-semibold">{singleSelection ? 'รายครั้ง · เลือกแล้ว ' + (sessionsMap.self || []).length + (courseType === 'private' ? ' ชั่วโมง' : ' ครั้ง') : 'ซื้อ ' + selectedPackage.quantity + (courseType === 'private' ? ' ชั่วโมง' : ' ครั้ง') + ' · เลือกแล้ว ' + (sessionsMap.self || []).length + ' · คงเหลือ ' + (selectedPackage.quantity - (sessionsMap.self || []).length)}</p>
         <p className="mt-2" data-testid="booking-package-expiry">{packageValidityDescription(selectedPackage, packageReference)}</p>
         {selectedPackage.quantity > 1 && <p className="mt-1 text-xs">{PACKAGE_DURATION_RULE}</p>}
+        {recommendedPackage && comparison?.fingerprint === comparisonFingerprint && authoritativePreview && <BookingPackageRecommendation pack={comparison.pack} selectedQuantity={bookingSessionCount} singleRate={authoritativePreview.selectedTier.pricePerSession} reference={packageReference} onSelect={() => { setPackageId(comparison.pack.id); setPreviewRecord(null); setNotice('เปลี่ยนเป็นคอร์สแล้ว วันเรียนที่เลือกยังอยู่ กรุณาตรวจยอดและคูปองล่าสุดก่อนยืนยัน') }} />}
         {selectedPackage.quantity > 1 && <Button className="mt-3" variant="outline" disabled={loading || uncertainCreate || !selectedBranchIds.length || courseType !== 'adult_group' && !privateSelfAttend && !selectedChildIds.length} onClick={() => { setSessionsMap({}); setNotice('ซื้อแพ็กเกจเต็มจำนวน และเก็บสิทธิไว้เลือกวันหลังยืนยันชำระแล้ว');if(isEditMode)setStep('summary') }}>ซื้อแพ็กเกจแล้วเลือกวันภายหลัง</Button>}
       </section>}
       {step === 'calendar' && hasCalendarLearner && selectedBranches.length > 0 && courseType && (
         <div className="space-y-4">
           <BookingCalendarHeading title={selectedBranches.map(b => b.name).join(', ')} month={calendarMonthDisplay}
-            previousDisabled={calMonth === now.getMonth() && calYear === now.getFullYear()}
-            nextDisabled={Boolean(packageEndMonth && getDateString(1).slice(0, 7) >= packageEndMonth)}
+            previousDisabled={isEditMode && singleSelection || calMonth === now.getMonth() && calYear === now.getFullYear()}
+            nextDisabled={isEditMode && singleSelection || Boolean(packageEndMonth && getDateString(1).slice(0, 7) >= packageEndMonth)}
             onPrevious={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) } else setCalMonth(calMonth - 1); setSessionsMap({}); setExpandedDate(null) }}
             onNext={() => { if (packageEndMonth && getDateString(1).slice(0, 7) >= packageEndMonth) return; if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1); setSessionsMap({}); setExpandedDate(null) }} />
           {courseType === 'kids_group' && <BookingLearnerTabs activeId={activeChildTab} onChange={id => { setActiveChildTab(id); setExpandedDate(null) }}
@@ -1996,7 +2027,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                             <Badge key={si} variant="outline" className={`text-xs py-0.5 px-1.5 gap-1 ${invalid ? 'border-red-300 bg-red-50 text-red-700' : ''}`}>
                               {formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
                               {invalid && <span className="font-medium">ไม่พร้อม</span>}
-                              <button data-testid={`remove-session-${cid}-${s.date}-${s.start.slice(0, 5)}`} onClick={() => removeSession(cid, si)} className="ml-0.5 hover:text-red-500"><X className="h-3 w-3" /></button>
+                              <button type="button" aria-label={`นำรอบ ${formatThaiCompactDateWithWeekday(s.date)} ${fmtTime(s.start)} ออก`} data-testid={`remove-session-${cid}-${s.date}-${s.start.slice(0, 5)}`} onClick={() => removeSession(cid, si)} className="ml-0.5 hover:text-red-500"><X className="h-3 w-3" /></button>
                             </Badge>
                           )
                         })}
@@ -2008,7 +2039,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                     {activeSessions.sort((a, b) => a.date.localeCompare(b.date)).map((s, i) => (
                       <Badge key={i} variant="outline" className="text-xs py-1 px-2 gap-1">
                         {formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
-                        <button onClick={() => removeSession('self', i)} className="ml-1 hover:text-red-500"><X className="h-3 w-3" /></button>
+                        <button type="button" aria-label={`นำรอบ ${formatThaiCompactDateWithWeekday(s.date)} ${fmtTime(s.start)} ออก`} data-testid={`remove-session-self-${s.date}-${s.start.slice(0, 5)}`} onClick={() => removeSession('self', i)} className="ml-1 hover:text-red-500"><X className="h-3 w-3" /></button>
                       </Badge>
                     ))}
                   </div>
@@ -2024,11 +2055,12 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                   <div className="border-t pt-3 flex justify-between items-center">
                     <div>
                       <p className="text-sm text-gray-600">
-                        ช่วงราคา {formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}
+                        ช่วงราคา {singleSelection ? 'รายครั้ง' : formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}
                       </p>
                       {(courseType === 'adult_group' || courseType === 'private') && selectedTier.minSessions > 1 && (
                         <p className="text-xs font-medium text-violet-700">{selectedPackage && packageValidityDescription(selectedPackage, packageReference)}</p>
                       )}
+                      {courseType === 'kids_group' && kidsPolicy?.pricingMode === 'per_bill_v1' && <p className="text-xs font-medium text-green-700" data-testid="kids-bill-pricing-note">คิดราคาจาก {allSelectedSessions.length} ครั้งในบิลนี้ · เริ่มนับใหม่ทุกบิล</p>}
                       {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && authoritativePreview.existingSessions > 0 && (
                         <p className="text-xs text-green-600 font-medium">รวมทั้งเดือน {authoritativePreview.totalSessionsAfter} ครั้ง → {selectedTier.pricePerSession.toLocaleString()} บาท/ครั้ง</p>
                       )}
@@ -2075,7 +2107,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
       {isEditMode && step === 'summary' && (
         <div>
           {selectedPackage && (!isEditMode || editBooking?.package_snapshot) && <div className="mb-4 rounded-xl bg-blue-50 p-4 text-sm">
-            ซื้อ {selectedPackage.quantity} {courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'} · เลือกวันแล้ว {(sessionsMap.self || []).length} · คงเหลือ {selectedPackage.quantity - (sessionsMap.self || []).length}
+            {singleSelection ? 'รายครั้ง ' + bookingSessionCount + (courseType === 'private' ? ' ชั่วโมง' : ' ครั้ง') : 'ซื้อ ' + selectedPackage.quantity + (courseType === 'private' ? ' ชั่วโมง' : 'ครั้ง') + ' · เลือกวันแล้ว ' + (sessionsMap.self || []).length + ' · คงเหลือ ' + (selectedPackage.quantity - (sessionsMap.self || []).length)}
             <p>{packageValidityDescription(selectedPackage, packageReference)}</p>
           </div>}
           <BookingReviewCard>
@@ -2107,7 +2139,7 @@ export function BookingClient({ todayBangkok, serverNow, userId, userName, learn
                       <p className="font-medium text-blue-700">{pricingWaitMessage}</p>
                     ) : selectedTier && (
                       <div>
-                        <p className="font-medium">{formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
+                        <p className="font-medium">{singleSelection ? 'รายครั้ง' : formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
                         {(courseType === 'adult_group' || courseType === 'private') && selectedTier.minSessions > 1 && (
                           <p className="text-xs font-medium text-violet-700">{selectedPackage && packageValidityDescription(selectedPackage, packageReference)}</p>
                         )}

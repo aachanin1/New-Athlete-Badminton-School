@@ -10,7 +10,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName } from '@/types/database'
 import { Task10Error } from '@/lib/task10-policy'
 import { quoteBookingCoupon } from '@/lib/booking-coupon-server'
-import { CheckoutRpcError, checkoutError } from '@/lib/booking-checkout-server'
+import { CheckoutRpcError, checkoutError, checkoutRpc } from '@/lib/booking-checkout-server'
+import type { SelectedPricingTierEvidence } from '@/lib/pricing'
 
 interface PreviewPayload {
   bookingId?: string | null
@@ -19,6 +20,8 @@ interface PreviewPayload {
   year?: number
   totalSessions?: number
   couponId?: string | null
+  packageId?: string
+  packageRevision?: number
 }
 
 function previewError(error: unknown) {
@@ -58,15 +61,17 @@ export async function POST(request: NextRequest) {
     if (!courseType) return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
 
     const decision = decideProgressiveBookingEntry(courseType.name)
+    let usePurchaseQuote = !body.bookingId && Boolean(body.packageId)
     if (body.bookingId) {
       const { data: booking } = await client
         .from('bookings')
-        .select('id, pricing_scope_id, course_type_id')
+        .select('id, pricing_scope_id, course_type_id, package_snapshot')
         .eq('id', body.bookingId)
         .eq('user_id', user.id)
-        .maybeSingle() as unknown as { data: { id: string; pricing_scope_id: string | null; course_type_id: string } | null }
+        .maybeSingle() as unknown as { data: { id: string; pricing_scope_id: string | null; course_type_id: string; package_snapshot?: { policyVersion?: number } | null } | null }
       if (!booking) return NextResponse.json({ error: 'ไม่พบการจองที่ต้องการแก้ไข' }, { status: 404 })
       if (booking.course_type_id !== courseType.id) return NextResponse.json({ error: 'ประเภทคอร์สไม่ตรงกับรายการจอง' }, { status: 400 })
+      usePurchaseQuote = booking.package_snapshot?.policyVersion === 2
       if (booking.pricing_scope_id) {
         const result = await previewProgressiveKidsGroupBooking({
           userId: user.id,
@@ -97,7 +102,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result)
     }
 
-    const price = await calculateBookingBasePricePreview({
+    const purchaseQuote = courseType.name !== 'kids_group' && usePurchaseQuote
+      ? await checkoutRpc<{ grossPrice: number; selectedTier: SelectedPricingTierEvidence; existingSessions: number; existingPaid: number; totalSessionsAfter: number }>('booking_bill_package_quote_v2', {
+        p_actor: user.id, p_course: courseType.id, p_quantity: body.totalSessions,
+        p_package_id: body.packageId || null, p_package_revision: body.packageRevision ?? null, p_booking: body.bookingId || null,
+      }) : null
+    const price = purchaseQuote ? { ...purchaseQuote, totalPrice: Number(purchaseQuote.grossPrice) } : await calculateBookingBasePricePreview({
       supabase: client,
       userId: user.id,
       courseTypeId: courseType.id,

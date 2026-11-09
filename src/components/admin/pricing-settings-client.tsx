@@ -11,12 +11,15 @@ import { Label } from '@/components/ui/label'
 import type { CourseCategory } from '@/lib/pricing'
 import type { AdminPricingSnapshot, AdminPricingTier } from '@/lib/admin-pricing-settings'
 import { validateKidsTierSet, type KidsRateCatalog } from '@/lib/booking-pricing-policy'
+import { checkoutRequest, type BookingPackage } from '@/lib/booking-checkout'
+import { adminOptionTotal, adminPurchaseOptions } from '@/lib/admin-purchase-options'
 
 interface PricingSettingsClientProps {
   initialPricing: AdminPricingSnapshot | null
   pricingLoadError?: string
   kidsCatalogs?: { early: KidsRateCatalog | null; late: KidsRateCatalog; active: boolean } | null
   kidsCatalogError?: string
+  pricingPackages: BookingPackage[] | null
 }
 
 const COURSE_LABELS: Record<CourseCategory, string> = {
@@ -26,22 +29,15 @@ const COURSE_LABELS: Record<CourseCategory, string> = {
 }
 
 const COURSE_DESCRIPTIONS: Record<CourseCategory, string> = {
-  kids_group: 'คิดเป็นรายเดือนและรวมจำนวนครั้งของพี่น้องในผู้ปกครองเดียวกัน',
-  adult_group: 'รายครั้งหรือเรทช่วงของคลาสผู้ใหญ่กลุ่ม',
-  private: 'รายชั่วโมงหรือเรทช่วงของคลาส Private',
+  kids_group: 'บิลใหม่คิดเรทจากจำนวนครั้งในบิลเดียว รวมพี่น้องในบิลนั้น และเริ่มนับใหม่เมื่อสร้างบิลใหม่',
+  adult_group: 'เลือกเรียนรายครั้งหลายรอบในบิลเดียว หรือเลือกซื้อคอร์สตามจำนวนครั้ง',
+  private: 'เลือกเรียนรายชั่วโมงหลายชั่วโมงในบิลเดียว หรือเลือกซื้อคอร์สตามจำนวนชั่วโมง',
 }
 
 const COURSE_ORDER = ['adult_group', 'private'] as const
 
 function formatMoney(value: number) {
   return `฿${Number(value || 0).toLocaleString('th-TH')}`
-}
-
-function tierLabel(tier: AdminPricingTier) {
-  const unit = tier.course_type_name === 'private' ? 'ชม.' : 'ครั้ง'
-  if (tier.max_sessions === null) return `${tier.min_sessions}+ ${unit}`
-  if (tier.min_sessions === tier.max_sessions) return `${tier.min_sessions} ${unit}`
-  return `${tier.min_sessions}-${tier.max_sessions} ${unit}`
 }
 
 function calculateAutoPackagePrice(tier: Pick<AdminPricingTier, 'min_sessions' | 'price_per_session'>) {
@@ -76,7 +72,7 @@ function KidsCatalogEditor({ catalog, onSaved }: { catalog: KidsRateCatalog; onS
   }
   return <Card><CardContent className="space-y-4 p-4">
     <h2 className="font-semibold text-[#153c85]">เด็ก — {catalog.regime === 'early' ? 'ราคาปกติ' : 'ราคาครึ่งเดือน'}</h2>
-    <p className="text-sm text-gray-500">กฎใหม่สำหรับบิลใหม่: ราคาครึ่งเดือนใช้เมื่อจองวันที่ 16–สิ้นเดือนเพื่อเรียนในเดือนและปีเดียวกัน กรณีอื่นใช้ราคาปกติ ระบบเลือกชุดราคาจากกฎที่เปิดใช้บนเซิร์ฟเวอร์ บันทึกแยกชุด บิลเดิมยังใช้ชุดราคาที่เก็บไว้เมื่อจอง</p>
+    <p className="text-sm text-gray-500">บิลใหม่เริ่มนับเรทจากจำนวนครั้งในบิลนั้น รวมพี่น้องเฉพาะบิลเดียวกัน ราคาครึ่งเดือนใช้เมื่อจองวันที่ 16–สิ้นเดือนเพื่อเรียนในเดือนและปีเดียวกัน กรณีอื่นใช้ราคาปกติ ระบบเลือกชุดราคาจากกฎที่เปิดใช้บนเซิร์ฟเวอร์ บันทึกแยกชุด บิลเดิมยังใช้ชุดราคาที่เก็บไว้เมื่อจอง</p>
     {rows.map((row, index) => <div key={index} className="grid grid-cols-3 gap-3">
       {(['minSessions', 'maxSessions', 'ratePerSession'] as const).map((field) => <Label key={field} className="space-y-2">
         <span>{field === 'minSessions' ? 'เริ่มที่' : field === 'maxSessions' ? 'ถึง (ว่าง = ไม่จำกัด)' : 'ราคา/ครั้ง'}</span>
@@ -93,7 +89,8 @@ function KidsCatalogEditor({ catalog, onSaved }: { catalog: KidsRateCatalog; onS
   </CardContent></Card>
 }
 
-export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCatalogs, kidsCatalogError }: PricingSettingsClientProps) {
+export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCatalogs, kidsCatalogError, pricingPackages }: PricingSettingsClientProps) {
+  const [packages, setPackages] = useState(pricingPackages)
   const [savedPricing, setSavedPricing] = useState(initialPricing)
   const [rows, setRows] = useState<AdminPricingTier[]>(initialPricing?.tiers || [])
   const [loading, setLoading] = useState(false)
@@ -102,6 +99,12 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
   const inFlight = useRef(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [catalogUpdates, setCatalogUpdates] = useState<Partial<Record<KidsRateCatalog['regime'], KidsRateCatalog>>>({})
+  const options = useMemo(() => {
+    try {
+      if (!packages?.length) throw Error('อ่านรูปแบบการซื้อไม่สำเร็จ กรุณาโหลดราคาล่าสุด')
+      return { rows: adminPurchaseOptions(rows, packages), error: null }
+    } catch (cause) { return { rows: [], error: cause instanceof Error ? cause.message : 'อ่านรูปแบบการซื้อไม่สำเร็จ' } }
+  }, [rows, packages])
 
   const stats = useMemo(() => {
     const kidsTiers = kidsCatalogs ? [kidsCatalogs.early, kidsCatalogs.late].flatMap((saved) => {
@@ -135,7 +138,7 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
   }
 
   const savePricing = async () => {
-    if (inFlight.current || needsReload || !savedPricing) return
+    if (inFlight.current || needsReload || !savedPricing || options.error) return
     inFlight.current = true
     setLoading(true)
     setError(null)
@@ -181,10 +184,14 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
     inFlight.current = true
     setLoading(true); setSuccess(null)
     try {
-      const response = await fetch('/api/admin/pricing', { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      const [response, catalog] = await Promise.all([
+        fetch('/api/admin/pricing', { cache: 'no-store', signal: AbortSignal.timeout(15000) }),
+        checkoutRequest<{ packages: BookingPackage[] }>('/api/booking-checkout?catalog=1'),
+      ])
       const result = await response.json()
       if (!response.ok || !result.data?.tiers) throw new Error(result.error || 'อ่านราคาปัจจุบันไม่สำเร็จ')
       setSavedPricing(result.data); setRows(result.data.tiers); setNeedsReload(false); setError(null)
+      setPackages(catalog.packages)
     } catch {
       setNeedsReload(true); setError('อ่านราคาปัจจุบันไม่สำเร็จ กรุณาโหลดราคาล่าสุดก่อนแก้ไข')
     } finally { inFlight.current = false; setLoading(false) }
@@ -192,7 +199,7 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
 
   const moneyOrMissing = (value: number | null | undefined) => value == null ? '—' : formatMoney(value)
   const formatDate = (value: string) => new Date(value + 'T00:00:00Z').toLocaleDateString('th-TH', { timeZone: 'UTC' })
-  const editorDisabled = loading || needsReload || !savedPricing
+  const editorDisabled = loading || needsReload || !savedPricing || Boolean(options.error)
 
   return (
     <div className="space-y-6">
@@ -204,7 +211,7 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
           </p>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตั้งค่าราคาค่าเรียน</h1>
           <p className="mt-1 text-sm text-gray-500">
-            แก้เฉพาะเรทต่อครั้ง/ชม. ที่ใช้คำนวณจริง ส่วนค่า DB auto ระบบคำนวณให้เพื่อรองรับ schema เดิม
+            ตั้งราคารายครั้ง/รายชั่วโมงและคอร์สตามรูปแบบการซื้อ ระบบแสดงราคารวมให้ตรวจสอบก่อนบันทึก
           </p>
         </div>
         <Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">
@@ -214,10 +221,10 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">เรทรวม</p><p className="mt-1 text-2xl font-bold text-[#153c85]">{stats.total ?? '—'}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">รายการราคาทั้งหมด</p><p className="mt-1 text-2xl font-bold text-[#153c85]">{stats.total ?? '—'}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-gray-500">เด็ก ต่ำสุด/ครั้ง</p><p className="mt-1 text-2xl font-bold text-emerald-600">{moneyOrMissing(stats.kidsLowest)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-gray-500">ผู้ใหญ่ รายครั้ง</p><p className="mt-1 text-2xl font-bold text-orange-600">{moneyOrMissing(stats.adultBase)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Private รายชม.</p><p className="mt-1 text-2xl font-bold text-[#2748bf]">{moneyOrMissing(stats.privateBase)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Private รายชั่วโมง</p><p className="mt-1 text-2xl font-bold text-[#2748bf]">{moneyOrMissing(stats.privateBase)}</p></CardContent></Card>
       </div>
 
       {error && (
@@ -246,74 +253,63 @@ export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCa
           {kidsCatalogs.early ? <KidsCatalogEditor key={kidsCatalogs.early.versionId} catalog={kidsCatalogs.early} onSaved={onKidsCatalogSaved} /> : <p role="alert">ยังไม่มีหลักฐานชุดราคาช่วงวันที่ 1–15 กรุณาตรวจสอบข้อมูลราคา</p>}
           <KidsCatalogEditor key={kidsCatalogs.late.versionId} catalog={kidsCatalogs.late} onSaved={onKidsCatalogSaved} />
         </> : null}
+        {options.error ? <p role="alert" className="text-red-600">{options.error}</p> : null}
+        <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">รายครั้ง/รายชั่วโมงเลือกหลายรอบแล้วชำระบิลเดียว ใช้ได้ภายในเดือนเรียนเดิม เมื่อใกล้จำนวนคอร์ส ระบบจะแนะนำให้เปรียบเทียบ ผู้ใช้ต้องเลือกเปลี่ยนเป็นคอร์สเอง</p>
         {savedPricing ? COURSE_ORDER.map((courseType) => {
-          const courseRows = rows
-            .filter((row) => row.course_type_name === courseType)
-            .sort((a, b) => a.min_sessions - b.min_sessions)
+          const courseOptions = options.rows.filter(({ pack }) => pack.course === courseType).sort((a, b) => a.pack.quantity - b.pack.quantity)
 
           return (
-            <Card key={courseType} className="overflow-hidden">
+            <Card key={courseType} data-testid={'pricing-course-' + courseType} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex flex-col gap-1 border-b bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="font-semibold text-[#153c85]">{COURSE_LABELS[courseType]}</h2>
                     <p className="text-xs text-gray-500">{COURSE_DESCRIPTIONS[courseType]}</p>
                   </div>
-                  <Badge variant="outline" className="w-fit bg-white">{courseRows.length} เรท</Badge>
+                  <Badge variant="outline" className="w-fit bg-white">{courseOptions.length} รูปแบบ</Badge>
                 </div>
                 <div className="divide-y">
-                  {courseRows.map((row) => (
-                    <div key={row.id} data-testid={'pricing-tier-' + row.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[160px_repeat(4,minmax(130px,1fr))] lg:items-start">
+                  {courseOptions.map(({ pack, tier: row }) => {
+                    const single = pack.quantity === 1
+                    const unit = courseType === 'private' ? 'ชั่วโมง' : 'ครั้ง'
+                    const total = adminOptionTotal(row, pack.quantity)
+                    const legacyRate = !single && row.min_sessions > 1 && row.min_sessions !== pack.quantity
+                    return <div key={pack.id} data-testid={'pricing-tier-' + row.id} data-purchase-option={pack.id} className="grid gap-4 px-4 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(150px,1fr)_minmax(150px,1fr)_minmax(140px,1fr)_minmax(220px,1.4fr)] xl:items-start">
                       <div className="space-y-1.5">
-                        <Label className="block min-h-4 text-xs text-gray-500">ช่วงราคา</Label>
+                        <Label className="block min-h-4 text-xs text-gray-500">รูปแบบการซื้อ</Label>
                         <div className="flex h-10 items-center rounded-md border bg-gray-50 px-3 text-sm font-semibold text-[#153c85]">
-                          {tierLabel(row)}
+                          {single ? courseType === 'private' ? 'รายชั่วโมง' : 'รายครั้ง' : `คอร์ส ${pack.quantity} ${unit}`}
                         </div>
                         <p className="text-xs text-gray-500">มีผล {formatDate(row.valid_from)} ถึง {row.valid_to ? formatDate(row.valid_to) : 'ไม่กำหนดวันสิ้นสุด'}</p>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="block min-h-4 text-xs">เริ่มที่</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          disabled={editorDisabled}
-                          aria-label={`${courseType} ${row.id} เริ่มที่`}
-                          value={row.min_sessions}
-                          onChange={(event) => updateRow(row.id, 'min_sessions', event.target.value)}
-                        />
+                        <Label className="block min-h-4 text-xs">{single ? 'จำนวนที่ซื้อ' : 'จำนวนสิทธิ์ในคอร์ส'}</Label>
+                        <div className="flex min-h-10 items-center rounded-md border bg-gray-50 px-3 py-2 text-sm" data-testid={'pricing-quantity-' + pack.id}>{single ? `เลือกได้หลาย${unit}ในบิลเดียว` : `${pack.quantity} ${unit}`}</div>
+                        <p className="text-xs text-gray-500">{single ? 'ใช้ได้ภายในเดือนเรียนเดิม' : 'จำนวนตามคอร์สที่เปิดขาย'}</p>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="block min-h-4 text-xs">ถึง (ว่าง = ไม่จำกัด)</Label>
+                        <Label htmlFor={'option-price-' + pack.id} className="block min-h-4 text-xs">{legacyRate ? 'อัตราของชุดราคาเดิม' : `ราคา/${unit}`}</Label>
                         <Input
-                          type="number"
-                          min={row.min_sessions}
-                          disabled={editorDisabled}
-                          aria-label={`${courseType} ${row.id} ถึง`}
-                          value={row.max_sessions ?? ''}
-                          onChange={(event) => updateRow(row.id, 'max_sessions', event.target.value)}
-                          placeholder="ไม่จำกัด"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="block min-h-4 text-xs">{courseType === 'private' ? 'ราคา/ชม.' : 'ราคา/ครั้ง'}</Label>
-                        <Input
+                          id={'option-price-' + pack.id}
                           type="number"
                           min={0}
+                          step="0.01"
                           disabled={editorDisabled}
                           aria-label={`${courseType} ${row.id} ราคา`}
                           value={row.price_per_session}
                           onChange={(event) => updateRow(row.id, 'price_per_session', event.target.value)}
                         />
+                        {legacyRate ? <p className="text-xs text-gray-500">เฉลี่ย {formatMoney(total / pack.quantity)}/{unit} · ใช้เงื่อนไขชุดราคาเดิม</p> : null}
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="block min-h-4 text-xs">ค่า DB Auto</Label>
-                        <div className="flex h-10 items-center rounded-md border bg-gray-50 px-3 text-sm font-semibold text-gray-700">
-                          {formatMoney(calculateAutoPackagePrice(row))}
+                        <Label className="block min-h-4 text-xs">{single ? courseType === 'private' ? 'การคิดราคารายชั่วโมง' : 'การคิดราคารายครั้ง' : 'ราคารวมคอร์ส'}</Label>
+                        <div className="flex min-h-10 items-center rounded-md border bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700" data-testid={'pricing-total-' + pack.id}>
+                          {single ? `จำนวนที่เลือก × ${formatMoney(row.price_per_session)}/${unit}` : formatMoney(total)}
                         </div>
-                        <p className="mt-1 text-[11px] text-gray-400">คำนวณอัตโนมัติ ห้ามแก้เอง</p>
+                        <p className="text-xs text-gray-500">{single ? `เช่น 3 ${unit} = ${formatMoney(adminOptionTotal(row, 3))}` : 'คำนวณจากราคาที่ตั้งไว้'}</p>
                       </div>
                     </div>
-                  ))}
+                  })}
                 </div>
               </CardContent>
             </Card>

@@ -1,4 +1,5 @@
 import type { CourseCategory } from '@/lib/pricing'
+import type { BookingPurchaseTerms } from '@/lib/booking-purchase'
 
 export type LessonWalletPolicyType = 'same_month' | 'ten_month_package'
 
@@ -37,6 +38,7 @@ export interface LessonWalletEntitlement {
 }
 
 export interface ResolveLessonWalletEntitlementInput {
+  purchaseTerms?: BookingPurchaseTerms | null
   durationMonths?: number | null
   courseType: CourseCategory
   purchasedQuantity: number
@@ -180,6 +182,7 @@ export function resolveLessonWalletEntitlement({
   pricingTiers,
   inheritedEntitlement,
   durationMonths,
+  purchaseTerms,
 }: ResolveLessonWalletEntitlementInput): LessonWalletEntitlement {
   if (inheritedEntitlement) return inheritedEntitlement
 
@@ -218,7 +221,9 @@ export function resolveLessonWalletEntitlement({
   const payment = approvedPayments[0]
   const approvalTimestamp = payment.verified_at as string
   const approvalDate = bangkokDateKey(approvalTimestamp)
-  const matchingTiers = matchingHistoricalTiers(
+  const matchingTiers = purchaseTerms?.policyVersion === 2
+    ? purchaseTerms.tierEvidence ? [{ ...purchaseTerms.tierEvidence, course_type_name: courseType }] : []
+    : matchingHistoricalTiers(
     pricingTiers,
     courseType,
     purchasedQuantity,
@@ -240,7 +245,7 @@ export function resolveLessonWalletEntitlement({
 
   const pricingTier = matchingTiers[0]
   const isTenMonthPackage = (courseType === 'adult_group' || courseType === 'private')
-    && purchasedQuantity > 1
+    && (purchaseTerms?.policyVersion === 2 ? purchaseTerms.purchaseMode === 'package' : purchasedQuantity > 1)
   const policyType: LessonWalletPolicyType = isTenMonthPackage ? 'ten_month_package' : 'same_month'
   const approvedMonth = bangkokDateParts(approvalTimestamp)
   const expiryMonth = isTenMonthPackage ? approvedMonth : originalMonth

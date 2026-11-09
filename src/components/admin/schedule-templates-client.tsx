@@ -54,6 +54,7 @@ export interface ScheduleTemplateData {
 }
 
 interface ScheduleTemplatesClientProps {
+  canManageClosures: boolean
   initialTab?:string
   branches: BranchOption[]
   courseTypes: CourseTypeOption[]
@@ -106,9 +107,9 @@ function formatSelectedDays(days: number[]) {
     .join(' ')
 }
 
-export function ScheduleTemplatesClient({ branches, courseTypes, initialTab }: ScheduleTemplatesClientProps) {
+export function ScheduleTemplatesClient({ branches, courseTypes, initialTab, canManageClosures }: ScheduleTemplatesClientProps) {
   const router = useRouter()
-  const [activeTab,setActiveTab]=useState(initialTab==='closures'?'closures':'regular'),[closureBusy,setClosureBusy]=useState(false),[formOpen,setFormOpen]=useState(false)
+  const [activeTab,setActiveTab]=useState(canManageClosures&&initialTab==='closures'?'closures':'regular'),[closureBusy,setClosureBusy]=useState(false),[formOpen,setFormOpen]=useState(false)
   const [page,setPage]=useState(1),[readEpoch,setReadEpoch]=useState(0),[listLoading,setListLoading]=useState(false),[listError,setListError]=useState('')
   type ReadResult={key:string;items:ScheduleTemplateData[];total:number;stats:{total:number;active:number;inactive:number;branches:number;private:number}}
   const [list,setList]=useState<ReadResult|null>(null)
@@ -288,16 +289,16 @@ export function ScheduleTemplatesClient({ branches, courseTypes, initialTab }: S
             <CalendarClock className="h-4 w-4" />
             Schedule Master
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตารางเรียนและวันปิดสาขา</h1>
+          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">{canManageClosures ? 'ตารางเรียนและวันปิดสาขา' : 'รอบเรียนประจำ'}</h1>
           <p className="mt-1 max-w-3xl text-sm text-gray-500">
-            จัดการรอบประจำ และกำหนดวันที่สาขาหยุดทำการ
+            {canManageClosures ? 'จัดการรอบประจำ และกำหนดวันที่สาขาหยุดทำการ' : 'จัดการรอบเรียนประจำของแต่ละสาขา'}
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={v=>{if(!closureBusy&&!saving)setActiveTab(v)}} className="space-y-5">
-      <TabsList className="grid h-auto w-full grid-cols-2"><TabsTrigger value="regular">รอบเรียนประจำ</TabsTrigger><TabsTrigger value="closures">วันปิดสาขา</TabsTrigger></TabsList>
-      <TabsContent value="closures" forceMount className="data-[state=inactive]:hidden"><BranchDateClosureManager branches={branches} active={activeTab==='closures'} onSavingChange={setClosureBusy}/></TabsContent>
+      {canManageClosures ? <TabsList className="grid h-auto w-full grid-cols-2"><TabsTrigger value="regular">รอบเรียนประจำ</TabsTrigger><TabsTrigger value="closures">วันปิดสาขา</TabsTrigger></TabsList> : null}
+      {canManageClosures ? <TabsContent value="closures" forceMount className="data-[state=inactive]:hidden"><BranchDateClosureManager branches={branches} active={activeTab==='closures'} onSavingChange={setClosureBusy}/></TabsContent> : null}
       <TabsContent value="regular" forceMount className="space-y-4 data-[state=inactive]:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold text-[#153c85]">รอบเรียนประจำ</h2><p className="mt-1 text-sm text-gray-500">ทั้งหมด {stats?.total??'—'} · เปิดใช้งาน {stats?.active??'—'} · ปิดใช้งาน {stats?.inactive??'—'} · {stats?.branches??'—'} สาขา</p></div><Button onClick={()=>setFormOpen(true)} className="bg-[#2748bf] hover:bg-[#153c85]"><Plus className="mr-2 h-4 w-4"/>เพิ่มรอบเรียน</Button></div>
       {listLoading?<p role="status" className="text-sm text-blue-700">กำลังอ่านรอบเรียน...</p>:null}{listError?<p role="alert" className="text-sm text-red-700">{listError} <Button variant="outline" onClick={()=>setReadEpoch(v=>v+1)}>ลองอ่านใหม่</Button></p>:null}

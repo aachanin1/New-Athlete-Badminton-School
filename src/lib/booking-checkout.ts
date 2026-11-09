@@ -1,4 +1,6 @@
-export interface BookingPackage {
+import type { BookingPurchaseTerms } from './booking-purchase'
+
+export interface BookingPackage extends BookingPurchaseTerms {
   id: string
   course: 'adult_group' | 'private'
   quantity: number

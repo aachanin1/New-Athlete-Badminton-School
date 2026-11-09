@@ -524,7 +524,7 @@ export function PaymentsClient({
                         <p className="font-semibold text-gray-900">{formatMoney(booking.total_price || 0)}</p>
                       )}
                       <p className="mt-1 text-xs text-gray-500">
-                        {MONTH_NAMES[booking.month]} {booking.year} · {booking.total_sessions} ครั้ง
+                        {MONTH_NAMES[booking.month]} {booking.year} · {booking.total_sessions} {booking.course_type==='private'?'ชั่วโมง':'ครั้ง'}
                       </p>
                       <p className="mt-1 text-xs text-gray-400">สร้าง {formatDate(booking.created_at)}</p>
                     </div>
@@ -701,7 +701,7 @@ export function PaymentsClient({
                       {payment.branch_name}
                     </p>
                     <p className="mt-1 text-xs text-gray-400">
-                      {MONTH_NAMES[payment.booking_month]} {payment.booking_year} · {payment.total_sessions} ครั้ง · {BOOKING_STATUS_LABELS[payment.booking_status] || payment.booking_status || '-'}
+                      {MONTH_NAMES[payment.booking_month]} {payment.booking_year} · {payment.total_sessions} {payment.course_type==='private'?'ชั่วโมง':'ครั้ง'} · {BOOKING_STATUS_LABELS[payment.booking_status] || payment.booking_status || '-'}
                     </p>
                     {payment.lifecycle_message && <p className="mt-1 text-xs text-rose-700">{payment.lifecycle_message}</p>}
                   </div>
@@ -834,7 +834,7 @@ export function PaymentsClient({
                 </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-gray-400">รอบเรียน</p>
-                  <p className="mt-1 font-medium">{detailPayment.total_sessions} ครั้ง</p>
+                  <p className="mt-1 font-medium">{detailPayment.total_sessions} {detailPayment.course_type==='private'?'ชั่วโมง':'ครั้ง'}</p>
                 </div>
               </div>
 

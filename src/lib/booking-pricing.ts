@@ -1,4 +1,4 @@
-import { getAdultGroupTotal, getKidsGroupIncremental, getPrivateTotal, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
+import { getAdultGroupTotal, getKidsGroupIncremental, getKidsGroupTotal, getPrivateTotal, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
 import { legacyTiersFromPolicy, loadBookingPricingPolicy, type BookingPricingPolicyQuote } from '@/lib/booking-pricing-policy'
 import type { Task10RpcClient } from '@/lib/task10-policy'
 
@@ -75,6 +75,10 @@ export async function calculateBookingBasePricePreview({
 
   if (courseTypeName === 'kids_group') {
     const policy = await loadBookingPricingPolicy(supabase, { userId, courseTypeId, month, year, formula: 'legacy', bookingId: excludeBookingId })
+    if (policy.pricingMode === 'per_bill_v1') {
+      const pricing = getKidsGroupTotal(newSessions, policy.catalog ? legacyTiersFromPolicy(policy.catalog) : pricingTiers)
+      return { policy, totalPrice: pricing.total, selectedTier: pricing.selectedTier, existingSessions: 0, existingPaid: 0, totalSessionsAfter: newSessions }
+    }
     const bookingsTable = supabase.from('bookings') as ExistingBookingTable
     let query = bookingsTable
       .select('id, total_sessions, total_price')

@@ -18,6 +18,7 @@ export interface KidsRateCatalog {
 }
 
 export interface BookingPricingPolicyEvidence {
+  pricingMode?: 'per_bill_v1'
   selectionRuleVersion?: 'kids_same_month_v2'
   activationRevision: number
   createdAt: string
@@ -30,6 +31,7 @@ export interface BookingPricingPolicyEvidence {
 }
 
 export interface BookingPricingPolicyQuote {
+  pricingMode?: 'per_bill_v1'
   selectionRuleVersion?: 'kids_same_month_v2'
   kind: 'booking_catalog' | 'legacy_compatibility'
   activationRevision: number

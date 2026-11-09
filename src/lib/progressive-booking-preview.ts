@@ -191,7 +191,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
   }
 
   const price = calculateProgressiveBookingPrice({
-    previousActiveSessions,
+    previousActiveSessions: policy.pricingMode === 'per_bill_v1' ? 0 : previousActiveSessions,
     newBookingEntitlementSessions: input.entitlementSessions,
     pricingTiers: policy.catalog ? progressiveTiersFromPolicy(policy.catalog) : Array.from(uniqueRanges.values()),
   })

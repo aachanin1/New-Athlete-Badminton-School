@@ -31,21 +31,26 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { bookingId, targetUserId, totalSessions, totalPrice } = await request.json() as BookingCreatedPayload
+    const { bookingId, targetUserId } = await request.json() as BookingCreatedPayload
 
     if (!bookingId) {
       return NextResponse.json({ error: 'bookingId is required' }, { status: 400 })
     }
 
     const adminSupabase = getServiceRoleClient()
+    const { data: booking, error: bookingError } = await adminSupabase.from('bookings')
+      .select('total_sessions,total_price,course_types(name)').eq('id', bookingId).eq('user_id', user.id).maybeSingle()
+    if (bookingError || !booking) return NextResponse.json({ error: 'ไม่พบรายการจองของบัญชีนี้' }, { status: 404 })
     const { data: profile } = await adminSupabase
       .from('profiles')
       .select('full_name')
       .eq('id', user.id)
       .maybeSingle() as unknown as { data: ProfileRow | null }
 
-    const sessionText = totalSessions ? ` ${totalSessions} ครั้ง` : ''
-    const priceText = totalPrice ? ` - ฿${Number(totalPrice).toLocaleString('th-TH')}` : ''
+    const course = booking.course_types as unknown as { name: string } | null
+    const unit = course?.name === 'private' ? 'ชั่วโมง' : 'ครั้ง'
+    const sessionText = ` ${booking.total_sessions} ${unit}`
+    const priceText = ` - ฿${Number(booking.total_price).toLocaleString('th-TH')}`
     const notificationClient = adminSupabase as unknown as SupabaseClient<Database>
 
     await notifyRoles(notificationClient, {

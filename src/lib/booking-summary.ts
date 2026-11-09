@@ -16,3 +16,11 @@ export function bookingSummaryRounds<T extends { branch_id: string; date: string
   for (const group of branches.values()) group.sort((a, b) => (a.session.date + a.session.start_time).localeCompare(b.session.date + b.session.start_time))
   return { count: rounds.size, branches }
 }
+
+/** Private quantity is elapsed hours of each Family round, never participant rows. */
+export function bookingSummaryQuantity<T extends { branch_id: string; date: string; start_time: string; end_time: string; child_id: string | null }>(sessions: T[], family: boolean): number {
+  const grouped = bookingSummaryRounds(sessions, family)
+  if (!family) return grouped.count
+  const minutes = (value: string) => { const [hours, mins] = value.split(':').map(Number); return hours * 60 + mins }
+  return [...grouped.branches.values()].flat().reduce((sum, { session }) => sum + (minutes(session.end_time) - minutes(session.start_time)) / 60, 0)
+}

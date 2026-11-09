@@ -3,12 +3,13 @@ import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { resolveLessonWalletEntitlement, type LessonWalletEntitlement, type LessonWalletPaymentEvidence, type LessonWalletPricingTierEvidence } from '@/lib/lesson-wallet-entitlement'
 import { readKidsFamilyMakeup } from '@/lib/kids-family-makeup'
 import type { CourseCategory } from '@/lib/pricing'
+import type { BookingPurchaseTerms } from '@/lib/booking-purchase'
 import { callTask10 } from '@/lib/task10-policy'
 
 interface Source {
   id: string; booking_id: string; child_id: string | null; schedule_slot_id: string | null; date: string; start_time: string; end_time: string
   status: string; is_makeup: boolean; cancelled_at: string | null
-  bookings: { user_id: string; status: string; total_sessions: number; learner_type: string; course_type_id: string; package_snapshot?: { validity_months:number } | null; course_types: { name: CourseCategory } }
+  bookings: { user_id: string; status: string; total_sessions: number; learner_type: string; course_type_id: string; package_snapshot?: BookingPurchaseTerms | null; course_types: { name: CourseCategory } }
 }
 type ReadQuery<T> = (start: number, end: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 async function all<T>(query: ReadQuery<T>) {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       course !== 'kids_group' && !inherited ? all<Omit<LessonWalletPricingTierEvidence, 'course_type_name'>>((start, end) => client.from('pricing_tiers').select('id,min_sessions,max_sessions,price_per_session,package_price,valid_from,valid_to').eq('course_type_id', b.course_type_id).order('id').range(start, end)) : [],
       course === 'kids_group' ? readKidsFamilyMakeup(client, access.ctx.user.id, b.user_id, s.date.slice(0, 7)) : null,
     ])
-    const entitlement = resolveLessonWalletEntitlement({ courseType: course, purchasedQuantity: b.total_sessions, originalSessionDate: s.date, payments, durationMonths:b.package_snapshot?.validity_months,
+    const entitlement = resolveLessonWalletEntitlement({ courseType: course, purchasedQuantity: b.total_sessions, originalSessionDate: s.date, payments, durationMonths:b.package_snapshot?.validity_months, purchaseTerms:b.package_snapshot,
       pricingTiers: tiers.map(t => ({ ...t, course_type_name: course })), inheritedEntitlement: inherited })
     if (Date.parse(entitlement.expiresAt) < Date.now()) return json({ eligible: false, reason: 'สิทธิ์กระเป๋าปกติหมดอายุแล้ว ไม่สามารถเก็บหรือขยายอายุย้อนหลังได้', expiresAt: entitlement.expiresAt })
     const confirmation = await callTask10<{ ready: boolean; confirmCredit: boolean; active: boolean }>(client, 'admin_makeup_store_once_preview_v1', { p_actor: access.ctx.user.id, p_source: s.id })

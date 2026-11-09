@@ -1,5 +1,7 @@
 'use client'
 import { bookingHistoryTime, bookingHistoryMonth } from '@/lib/booking-history'
+import { bookingSummaryQuantity } from '@/lib/booking-summary'
+import { isPerSessionPurchase, type BookingPurchaseTerms } from '@/lib/booking-purchase'
 import { BookingOrderReferences } from './booking-order-references'
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
@@ -47,7 +49,7 @@ import {
 } from 'lucide-react'
 
 interface BookingWithRelations {
-  package_snapshot?: {quantity:number;validity_months:number} | null
+  package_snapshot?: BookingPurchaseTerms | null
   lifecycle?: BookingPaymentLifecycle
   id: string
   user_id: string
@@ -1340,7 +1342,7 @@ export function HistoryClient({
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-600">
                               <Clock className="h-3.5 w-3.5 text-gray-400" />
-                              <span>{booking.total_sessions} ครั้ง</span>
+                              <span>{booking.total_sessions} {booking.course_types?.name==='private'?'ชั่วโมง':'ครั้ง'}</span>
                             </div>
                             {(bookingChildNamesMap[booking.id]?.length > 0 || booking.children) && (
                               <div className="flex items-center gap-1.5 text-gray-600 col-span-2 md:col-span-4">
@@ -1350,7 +1352,7 @@ export function HistoryClient({
                               </div>
                             )}
                           </div>
-                          {booking.package_snapshot&&<p className="mt-2 text-sm text-blue-800">{booking.package_snapshot.quantity===1?'ใช้ได้ในเดือนเรียนที่เลือก':`อายุแพ็กเกจ ${booking.package_snapshot.validity_months} เดือน นับเดือนยืนยันชำระเป็นเดือนที่ 1`}{booking.status==='verified'&&<> · <a className="font-semibold underline" href="/dashboard/lesson-wallet">ดูวันหมดอายุและสิทธิคงเหลือในกระเป๋า</a></>}</p>}
+                          {booking.package_snapshot&&<p className="mt-2 text-sm text-blue-800">{isPerSessionPurchase(booking.package_snapshot)?'รายครั้ง · ใช้ได้ในเดือนเรียนที่เลือก เก็บข้ามเดือนไม่ได้':`อายุแพ็กเกจ ${booking.package_snapshot.validity_months} เดือน นับเดือนยืนยันชำระเป็นเดือนที่ 1`}{booking.status==='verified'&&<> · <a className="font-semibold underline" href="/dashboard/lesson-wallet">ดูวันหมดอายุและสิทธิคงเหลือในกระเป๋า</a></>}</p>}
                           {isAdmin && booking.profiles && (
                             <p className="text-xs text-gray-400 mt-1">ผู้จอง: {booking.profiles.full_name} ({booking.profiles.email})</p>
                           )}
@@ -1653,13 +1655,13 @@ export function HistoryClient({
               {bookingPaymentLifecycleMessage(selectedBooking.lifecycle) && <p className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{bookingPaymentLifecycleMessage(selectedBooking.lifecycle)}</p>}
               <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-gray-600">
-                  <p>{isVerifiedZeroCharge(selectedBooking) ? 'จำนวนครั้งที่ยืนยัน:' : 'จำนวนที่ชำระ:'} <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
+                  <p>{isVerifiedZeroCharge(selectedBooking) ? 'จำนวนครั้งที่ยืนยัน:' : 'จำนวนที่ชำระ:'} <strong>{selectedBooking.total_sessions} {selectedBooking.course_types?.name==='private'?'ชั่วโมง':'ครั้ง'}</strong></p>
                   <p className="mt-0.5">
-                    รอบเรียนที่ยังใช้งานได้: <strong>{selectedActiveSessions.length}/{selectedBooking.total_sessions} ครั้ง</strong>
+                    รอบเรียนที่ยังใช้งานได้: <strong>{bookingSummaryQuantity(selectedActiveSessions, selectedBooking.course_types?.name==='private')}/{selectedBooking.total_sessions} {selectedBooking.course_types?.name==='private'?'ชั่วโมง':'ครั้ง'}</strong>
                   </p>
                   {selectedActiveWalletedSessions.length > 0 && (
                     <p className="mt-0.5">
-                      อยู่ในกระเป๋า รอเลือกวันใหม่: <strong>{selectedActiveWalletedSessions.length} ครั้ง</strong>
+                      อยู่ในกระเป๋า รอเลือกวันใหม่: <strong>{bookingSummaryQuantity(selectedActiveWalletedSessions, selectedBooking.course_types?.name==='private')} {selectedBooking.course_types?.name==='private'?'ชั่วโมง':'ครั้ง'}</strong>
                     </p>
                   )}
                   {selectedLearnerCounts.length > 0 && (

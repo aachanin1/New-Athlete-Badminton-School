@@ -27,13 +27,14 @@ export interface AdminMenuItem {
   description: string
   superAdminOnly?: boolean
   lockedForAdmin?: boolean
+  defaultForAdmin?: boolean
 }
 
 export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: 'dashboard', href: '/admin', label: 'ภาพรวม', description: 'ดู KPI และภาพรวมระบบ', lockedForAdmin: true },
   { key: 'branches', href: '/admin/branches', label: 'จัดการสาขา', description: 'ดูสถานะสาขา โค้ช และยอดจองรายสาขา' },
-  { key: 'schedules', href: '/admin/schedules', label: 'ตารางเรียน', description: 'ดูตารางเรียนและรอบที่มีผู้จอง' },
-  { key: 'schedule_templates', href: '/admin/schedule-templates', label: 'รอบเรียนประจำ', description: 'ตั้งค่ารอบเรียนหลักของแต่ละสาขา', superAdminOnly: true },
+  { key: 'schedules', href: '/admin/schedules', label: 'ตารางเรียน', description: 'ดูตารางเรียนและรอบที่มีผู้จอง', lockedForAdmin: true },
+  { key: 'schedule_templates', href: '/admin/schedule-templates', label: 'รอบเรียนประจำ', description: 'ตั้งค่ารอบเรียนหลักของแต่ละสาขา', defaultForAdmin: false },
   { key: 'users', href: '/admin/users', label: 'จัดการข้อมูลผู้ใช้', description: 'ดูข้อมูลผู้ใช้งานทั้งหมด' },
   { key: 'ranking', href: '/admin/ranking', label: 'อันดับนักเรียน', description: 'ดู Ranking จาก Level ล่าสุดที่ Coach ประเมิน' },
   { key: 'makeup', href: '/admin/makeup', label: 'วันชดเชย', description: 'ดูแลและจัดการสิทธิ์ชดเชย' },
@@ -45,7 +46,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: 'coach_checkins', href: '/admin/coach-checkins', label: 'เช็คอินโค้ช', description: 'ตรวจรูปและสถานะเช็คอินรายรอบสอน' },
   { key: 'teaching_programs', href: '/admin/teaching-programs', label: 'ตรวจโปรแกรมสอน', description: 'ตรวจ อนุมัติ และส่งกลับโปรแกรมสอนที่โค้ชส่งมา' },
   { key: 'complaints', href: '/admin/complaints', label: 'ร้องเรียน', description: 'ติดตามและตอบกลับเรื่องร้องเรียน' },
-  { key: 'notifications', href: '/admin/notifications', label: 'แจ้งเตือน', description: 'ส่งและตรวจประวัติการแจ้งเตือน' },
+  { key: 'notifications', href: '/admin/notifications', label: 'แจ้งเตือน', description: 'ส่งและตรวจประวัติการแจ้งเตือน', lockedForAdmin: true },
   { key: 'logs', href: '/admin/logs', label: 'Activity Log', description: 'ตรวจประวัติการทำงานของระบบ', superAdminOnly: true },
   { key: 'settings', href: '/admin/settings', label: 'ตั้งค่าระบบ', description: 'ตั้งค่าหลักของระบบ', superAdminOnly: true },
 ]
@@ -54,14 +55,24 @@ export const ADMIN_STANDARD_MENU_KEYS = ADMIN_MENU_ITEMS
   .filter((item) => !item.superAdminOnly)
   .map((item) => item.key)
 
+export const ADMIN_REQUIRED_MENU_KEYS = ADMIN_MENU_ITEMS
+  .filter((item) => !item.superAdminOnly && item.lockedForAdmin)
+  .map((item) => item.key)
+
+// The newly delegable menu requires an explicit grant; existing Admin access
+// stays the same until the Super Admin selects it.
+const ADMIN_DEFAULT_MENU_KEYS = ADMIN_MENU_ITEMS
+  .filter((item) => !item.superAdminOnly && item.defaultForAdmin !== false)
+  .map((item) => item.key)
+
 export function getAllowedAdminMenuKeys(value: unknown): AdminMenuKey[] {
   if (!value || typeof value !== 'object') {
-    return ADMIN_STANDARD_MENU_KEYS
+    return ADMIN_DEFAULT_MENU_KEYS
   }
 
   const keys = (value as { adminAllowedMenuKeys?: unknown }).adminAllowedMenuKeys
   if (!Array.isArray(keys)) {
-    return ADMIN_STANDARD_MENU_KEYS
+    return ADMIN_DEFAULT_MENU_KEYS
   }
 
   const allowed = keys.filter((key): key is AdminMenuKey => (
@@ -69,7 +80,13 @@ export function getAllowedAdminMenuKeys(value: unknown): AdminMenuKey[] {
     ADMIN_STANDARD_MENU_KEYS.includes(key as AdminMenuKey)
   ))
 
-  return Array.from(new Set<AdminMenuKey>(['dashboard', ...allowed]))
+  return Array.from(new Set<AdminMenuKey>([...ADMIN_REQUIRED_MENU_KEYS, ...allowed]))
+}
+
+export function normalizeAdminMenuPermissionSetting(value: unknown) {
+  const setting = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : {}
+  return { ...setting, adminAllowedMenuKeys: getAllowedAdminMenuKeys(setting) }
 }
 
 export function getAdminMenuFallbackHref(allowedKeys: AdminMenuKey[]) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
 import { KIDS_MAKEUP_MINIMUM_KEY, parseKidsMakeupMinimum } from '@/lib/kids-makeup-settings'
 import { callTask10, Task10Error } from '@/lib/task10-policy'
+import { ADMIN_MENU_PERMISSION_SETTING_KEY, normalizeAdminMenuPermissionSetting } from '@/lib/admin-navigation'
 
 async function saveKidsMinimum(actorId: string, body: Record<string, unknown>) {
   const minimum = parseKidsMakeupMinimum(body.minimum)
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('system_settings')
-      .insert({ key: key.trim(), value: value ?? {}, updated_by: admin.user.id })
+      .insert({ key: key.trim(), value: key.trim() === ADMIN_MENU_PERMISSION_SETTING_KEY ? normalizeAdminMenuPermissionSetting(value) : value ?? {}, updated_by: admin.user.id })
       .select()
       .single()
 
@@ -71,6 +72,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json()
     const { id, key, value } = body
+    let storedKey = key
     const supabaseAdmin = getServiceRoleClient()
 
     if (!id && !key) {
@@ -82,6 +84,7 @@ export async function PATCH(req: NextRequest) {
     if (id) {
       const { data: row, error } = await supabaseAdmin.from('system_settings').select('key').eq('id', id).maybeSingle()
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      storedKey = row?.key
       if (row?.key === KIDS_MAKEUP_MINIMUM_KEY || key === KIDS_MAKEUP_MINIMUM_KEY) {
         if (!row || (key && key !== row.key)) return NextResponse.json({ error: 'ID และ key ไม่ตรงกัน' }, { status: 409 })
         return saveKidsMinimum(admin.user.id, body)
@@ -90,7 +93,7 @@ export async function PATCH(req: NextRequest) {
       return saveKidsMinimum(admin.user.id, body)
     }
 
-    const query = supabaseAdmin.from('system_settings').update({ value: value ?? {}, updated_by: admin.user.id })
+    const query = supabaseAdmin.from('system_settings').update({ value: storedKey === ADMIN_MENU_PERMISSION_SETTING_KEY ? normalizeAdminMenuPermissionSetting(value) : value ?? {}, updated_by: admin.user.id })
 
     if (id) {
       query.eq('id', id)

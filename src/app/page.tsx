@@ -1,4 +1,7 @@
 import Image from 'next/image'
+import { readPublicBookingPrices } from '@/lib/public-booking-prices'
+import { PublicPricingRows } from '@/components/shared/public-pricing-rows'
+import { connection } from 'next/server'
 import Link from 'next/link'
 import { PublicNavbar } from '@/components/layout/public-navbar'
 import { Button } from '@/components/ui/button'
@@ -11,8 +14,6 @@ import {
   Trophy,
   GraduationCap,
   Star,
-  Clock,
-  CheckCircle2,
   Phone,
   MessageCircle,
   Facebook,
@@ -58,7 +59,9 @@ const LEVEL_RANGES = [
   { emoji: '🏆', range: 'LV 71+', label: 'ชุดนักกีฬา A', desc: 'ระดับต่อยอดสำหรับนักกีฬาที่พัฒนาเกินชุดเดิม', color: 'bg-rose-50 border-rose-200' },
 ]
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  await connection()
+  const prices = await readPublicBookingPrices()
   return (
     <PublicAuthProvider>
     <div className="min-h-screen bg-white scroll-smooth">
@@ -149,34 +152,9 @@ export default function LandingPage() {
                 <div className="text-center mb-6">
                   <span className="text-4xl">🏸</span>
                   <h3 className="font-bold text-xl mt-2 text-[#153c85]">เด็ก (กลุ่ม)</h3>
-                  <p className="text-gray-500 text-sm">4-6 คน / กลุ่ม • 2 ชม.</p>
+                  <p className="text-gray-500 text-sm">เรียนกลุ่ม • 2 ชม. · เริ่มเรทใหม่ทุกบิล</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">รายครั้ง</span>
-                    <span className="font-bold">700 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">4 ครั้ง/เดือน</span>
-                    <span className="font-bold">2,500 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">8 ครั้ง/เดือน</span>
-                    <span className="font-bold">4,000 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">12 ครั้ง/เดือน</span>
-                    <span className="font-bold">5,200 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">16 ครั้ง/เดือน</span>
-                    <span className="font-bold">6,500 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm bg-[#f57e3b]/10 p-2 rounded">
-                    <span className="text-[#f57e3b] font-medium">19+ ครั้ง/เดือน</span>
-                    <span className="font-bold text-[#f57e3b]">7,000 บาท</span>
-                  </div>
-                </div>
+                <PublicPricingRows course="kids_group" kids={prices?.kids} packages={prices?.packages} />
               </CardContent>
             </Card>
 
@@ -188,26 +166,7 @@ export default function LandingPage() {
                   <h3 className="font-bold text-xl mt-2 text-[#153c85]">ผู้ใหญ่ (กลุ่ม)</h3>
                   <p className="text-gray-500 text-sm">1-6 คน / กลุ่ม • 2 ชม.</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">รายครั้ง</span>
-                    <span className="font-bold">600 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">10 ครั้ง</span>
-                    <span className="font-bold">5,500 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm bg-[#f57e3b]/10 p-2 rounded">
-                    <span className="text-[#f57e3b] font-medium">16 ครั้ง</span>
-                    <span className="font-bold text-[#f57e3b]">8,000 บาท</span>
-                  </div>
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-700 flex items-start gap-1">
-                      <Clock className="h-3 w-3 mt-0.5 shrink-0" />
-                      แพ็กเกจ 10-16 ครั้ง ตรวจอายุสิทธิของแต่ละแพ็กเกจได้ในหน้าจอง
-                    </p>
-                  </div>
-                </div>
+                <PublicPricingRows course="adult_group" kids={prices?.kids} packages={prices?.packages} />
               </CardContent>
             </Card>
 
@@ -222,22 +181,7 @@ export default function LandingPage() {
                   <h3 className="font-bold text-xl mt-2 text-[#153c85]">Private</h3>
                   <p className="text-gray-500 text-sm">เด็ก & ผู้ใหญ่ • 1 ชม.</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">รายชั่วโมง</span>
-                    <span className="font-bold">900 บาท</span>
-                  </div>
-                  <div className="flex justify-between text-sm bg-[#f57e3b]/10 p-2 rounded">
-                    <span className="text-[#f57e3b] font-medium">10 ชั่วโมง</span>
-                    <span className="font-bold text-[#f57e3b]">8,000 บาท</span>
-                  </div>
-                  <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-                    <p className="text-xs text-orange-700 flex items-start gap-1">
-                      <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0" />
-                      เหมาะสำหรับครอบครัว เรียนด้วยกันได้
-                    </p>
-                  </div>
-                </div>
+                <PublicPricingRows course="private" kids={prices?.kids} packages={prices?.packages} />
               </CardContent>
             </Card>
           </div>

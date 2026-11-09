@@ -61,6 +61,9 @@ export async function loadPreviousBookings(actor: string): Promise<PreviousBooki
 export function checkoutError(error: unknown) {
   const source = error instanceof Error ? error.message : ''
   const messages: Record<string, string> = {
+    BOOKING_BILL_REFRESH_REQUIRED: 'เงื่อนไขการจองเปลี่ยนแล้ว กรุณาโหลดหน้าและราคาใหม่ก่อนยืนยัน',
+    BOOKING_BILL_POLICY_DISABLED: 'ระบบจองรุ่นนี้ยังไม่เปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่',
+    BOOKING_BILL_TARGET_MONTH: 'แบบรายครั้งใช้ได้เฉพาะเดือนเรียนเดิม กรุณาเลือกวันภายในเดือนเดียวกัน',
     PROGRESSIVE_BOOKING_CONFLICT: 'พบข้อมูลชุดราคาของรายการเดิมไม่สอดคล้องกัน กรุณาติดต่อเจ้าหน้าที่เพื่อตรวจสอบ',
     BOOKING_UX_LEARNER_ADDITION_ONLY: 'กรุณาคงผู้เรียนเดิมไว้ และเลือกผู้เรียนที่ต้องการเพิ่มก่อนบันทึก',
     BOOKING_UX_LEARNER_ROUND_REQUIRED: 'กรุณาเลือกวันและรอบเรียนให้ผู้เรียนที่เลือกครบทุกคน',
