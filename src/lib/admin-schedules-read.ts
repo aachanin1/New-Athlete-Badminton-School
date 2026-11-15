@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { readScheduleWalletUses, type ScheduleWalletCredit } from '@/lib/admin-schedule-wallet-read'
 import {
   buildAdminScheduleDayDetail,
   buildAdminScheduleMonthSummary,
@@ -16,7 +17,6 @@ import {
   type AdminScheduleSessionRow,
   type AdminScheduleStudentLevelRow,
   type AdminScheduleTeachingProgramRow,
-  type AdminScheduleWalletCreditRow,
 } from '@/lib/admin-schedules-model'
 import type { AttendanceSessionRow } from '@/lib/session-attendance-status'
 import type { Database } from '@/types/database'
@@ -165,13 +165,20 @@ async function fetchWalletCredits(
   const pages = await mapWithConcurrency(chunks(sessionIds), async (ids) => {
     addCall(metrics, 'walletChunks')
     const { data, error } = await supabase.from('lesson_wallet_credits')
-      .select('original_session_id, status').in('original_session_id', ids)
+      .select('id, user_id, original_session_id, status').in('original_session_id', ids)
     if (error) throw new Error(`Admin schedule wallet credits query failed: ${error.message}`)
-    const rows = (data || []) as AdminScheduleWalletCreditRow[]
+    const rows = (data || []) as ScheduleWalletCredit[]
     addRows(metrics, 'walletCredits', rows.length)
     return rows
   })
-  return pages.flat()
+  const credits = pages.flat()
+  if (!credits.length) return credits
+  // Makeup use is service-only evidence; source rows above retain the caller's
+  // RLS boundary. Return only projected credit status to the schedule model.
+  return readScheduleWalletUses(getServiceRoleClient(), credits, count => {
+    addCall(metrics, 'walletMakeupUsePages')
+    addRows(metrics, 'walletMakeupUses', count)
+  })
 }
 
 async function fetchGroupsForDateRange(
