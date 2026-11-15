@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { readPublicBookingPrices } from '@/lib/public-booking-prices'
+import { readPublicBranches } from '@/lib/public-branches'
 import { PublicPricingRows } from '@/components/shared/public-pricing-rows'
 import { connection } from 'next/server'
 import Link from 'next/link'
@@ -18,16 +19,6 @@ import {
   MessageCircle,
   Facebook,
 } from 'lucide-react'
-
-const BRANCHES = [
-  'แจ้งวัฒนะ',
-  'พระราม 2',
-  'รามอินทรา',
-  'สุวรรณภูมิ',
-  'เทพารักษ์',
-  'รัชดา',
-  'ราชพฤกษ์-ตลิ่งชัน',
-]
 
 const FEATURES = [
   {
@@ -61,7 +52,11 @@ const LEVEL_RANGES = [
 
 export default async function LandingPage() {
   await connection()
-  const prices = await readPublicBookingPrices()
+  const [prices, branches] = await Promise.all([readPublicBookingPrices(), readPublicBranches()])
+  const branchCount = branches?.length ?? 0
+  const branchCoverage = branchCount > 0
+    ? `${branchCount} สาขาในกรุงเทพฯ และปริมณฑล`
+    : 'สาขาในกรุงเทพฯ และปริมณฑล'
   return (
     <PublicAuthProvider>
     <div className="min-h-screen bg-white scroll-smooth">
@@ -93,7 +88,7 @@ export default async function LandingPage() {
               <span className="block text-[#f57e3b]">Badminton School</span>
             </h1>
             <p className="text-lg md:text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              โรงเรียนสอนแบดมินตันสำหรับเด็กและผู้ใหญ่ 7 สาขาทั่วกรุงเทพฯ
+              โรงเรียนสอนแบดมินตันสำหรับเด็กและผู้ใหญ่ {branchCoverage}{' '}
               พัฒนาทักษะตั้งแต่พื้นฐานจนถึงระดับนักกีฬาทีมชาติ
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -217,20 +212,25 @@ export default async function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#153c85] mb-4">
-              7 สาขาทั่วกรุงเทพฯ
+              {branchCoverage}
             </h2>
             <p className="text-gray-500">เลือกสาขาที่สะดวก เปลี่ยนสาขาได้ตลอด</p>
           </div>
           <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-            {BRANCHES.map((branch) => (
+            {branches?.map((branch) => (
               <div
-                key={branch}
+                key={branch.id}
                 className="flex items-center gap-2 bg-white px-5 py-3 rounded-full shadow-sm border hover:border-[#2748bf] hover:shadow-md transition-all"
               >
                 <MapPin className="h-4 w-4 text-[#f57e3b]" />
-                <span className="font-medium text-gray-700">{branch}</span>
+                <span className="font-medium text-gray-700">{branch.name}</span>
               </div>
             ))}
+            {branchCount === 0 && (
+              <p className="text-center text-gray-500">
+                กรุณา<a href="#contact" className="text-[#2748bf] underline underline-offset-4">ติดต่อสอบถาม</a>ข้อมูลสาขาที่เปิดให้บริการ
+              </p>
+            )}
           </div>
         </div>
       </section>

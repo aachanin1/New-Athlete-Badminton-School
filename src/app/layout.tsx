@@ -14,7 +14,7 @@ const prompt = Prompt({
 
 export const metadata: Metadata = {
   title: "New Athlete Badminton School",
-  description: "โรงเรียนสอนแบดมินตัน New Athlete School — สอนแบดมินตันสำหรับเด็กและผู้ใหญ่ 7 สาขาทั่วกรุงเทพฯ",
+  description: "โรงเรียนสอนแบดมินตัน New Athlete School — สอนแบดมินตันสำหรับเด็กและผู้ใหญ่ หลายสาขาในกรุงเทพฯ และปริมณฑล",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
