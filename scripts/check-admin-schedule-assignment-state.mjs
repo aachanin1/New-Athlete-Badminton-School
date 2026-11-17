@@ -194,15 +194,14 @@ check('legacy slot assignments are absent from the assignment predicate', () => 
 })
 
 check('server query resolves coach profile id, name and role', () => {
-  assert.equal(schedulesRead.includes("profileSelection = detailed ? 'id, full_name, role' : 'id, role'"), true)
-  assert.equal(schedulesRead.includes('profiles!coach_assignment_groups_coach_id_fkey(${profileSelection})'), true)
+  assert.equal(schedulesRead.includes('profiles!coach_assignment_groups_coach_id_fkey(id, full_name, role)'), true)
   for (const field of ['coach_profile_id:', 'coach_name:', 'coach_role:']) assert.equal(schedulesModel.includes(field), true)
 })
 
-check('unassigned groups render a visible red warning without changing valid green groups', () => {
+check('unassigned groups retain a visible red warning alongside course-colored assigned groups', () => {
   assert.equal(client.includes('border border-red-200 bg-red-50/50'), true)
   assert.equal(client.includes('ยังไม่ได้มอบหมายโค้ช'), true)
-  assert.equal(client.includes('border border-emerald-100 bg-emerald-50/30'), true)
+  assert.equal(client.includes('${course.groupPanel}'), true)
 })
 
 check('attendance labels and teaching program boxes remain present', () => {

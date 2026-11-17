@@ -17,7 +17,7 @@ const sessions=[...origins.map(c=>session(c.original_session_id)),session('desti
 function totals(credits){return summary({sessions,walletCredits:credits,groups:[]}).totalsByFilter['all:all']}
 await check('baseline reproduces spent origins falsely counted as three waiting credits',()=>assert.equal(totals(origins).walletedCount,3))
 await check('same-day sibling uses remove two origins and retain destinations plus genuine unused credit',()=>{
- const cs=project(origins,used);assert.equal(totals(cs).walletedCount,1);assert.equal(totals(cs).sessionCount,3)
+ const cs=project(origins,used);assert.equal(totals(cs).walletedCount,1);assert.equal(totals(cs).sessionCount,2)
  const d=detail({sessions,walletCredits:cs,groups:[],slotSessions:[],attendanceRows:[],studentLevels:[],levels:[],teachingPrograms:[]})
  assert.deepEqual(d.sessions.map(s=>s.id).sort(),['destination-shina','destination-shino','unused'])
  const s=search({sessions,walletCredits:cs,startDate:'2026-11-01',endDate:'2026-11-30',limit:200})

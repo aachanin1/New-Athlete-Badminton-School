@@ -20,7 +20,6 @@ import {
   ArrowRight,
   BookOpenCheck,
   Building2,
-  Calendar,
   CalendarDays,
   RotateCcw,
   Search,
@@ -35,7 +34,7 @@ import { stripDynamicMemberCount } from '@/lib/coach-assignment-group-naming'
 import { formatScheduleLevel } from '@/lib/schedule-learning-details'
 import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import {
-  getAdminScheduleSummaryTotals,
+  getAdminSchedulePeopleSummary,
   type AdminScheduleMonthSummary,
 } from '@/lib/admin-schedules-model'
 
@@ -104,6 +103,8 @@ interface ScheduleRound {
   course_type_id: string
   course_type: string
   learner_count: number
+  learner_keys: string[]
+  coach_ids: string[]
   groups: ScheduleRoundGroup[]
   unassigned_learners: ScheduleSession[]
 }
@@ -121,10 +122,39 @@ interface SchedulesClientProps {
   initialMonth: number
 }
 
-const COURSE_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  kids_group: { label: 'เด็กกลุ่ม', dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
-  adult_group: { label: 'ผู้ใหญ่กลุ่ม', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
-  private: { label: 'Private', dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
+interface CourseStyle {
+  label: string
+  dot: string
+  badge: string
+  roundBorder: string
+  groupPanel: string
+  heading: string
+  outlineBadge: string
+  programRing: string
+}
+
+const DEFAULT_COURSE_STYLE: CourseStyle = {
+  label: 'ไม่ระบุคอร์ส', dot: 'bg-gray-500', badge: 'border-gray-200 bg-gray-100 text-gray-700',
+  roundBorder: 'border-l-gray-500', groupPanel: 'border-gray-200 bg-gray-50',
+  heading: 'text-gray-800', outlineBadge: 'border-gray-200 text-gray-700', programRing: 'ring-gray-200',
+}
+
+const COURSE_CONFIG: Record<string, CourseStyle> = {
+  kids_group: {
+    label: 'เด็กกลุ่ม', dot: 'bg-blue-500', badge: 'border-blue-200 bg-blue-100 text-blue-800',
+    roundBorder: 'border-l-blue-500', groupPanel: 'border-blue-200 bg-blue-50',
+    heading: 'text-blue-900', outlineBadge: 'border-blue-200 text-blue-700', programRing: 'ring-blue-200',
+  },
+  adult_group: {
+    label: 'ผู้ใหญ่กลุ่ม', dot: 'bg-emerald-500', badge: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+    roundBorder: 'border-l-emerald-500', groupPanel: 'border-emerald-200 bg-emerald-50',
+    heading: 'text-emerald-900', outlineBadge: 'border-emerald-200 text-emerald-700', programRing: 'ring-emerald-200',
+  },
+  private: {
+    label: 'Private', dot: 'bg-orange-500', badge: 'border-orange-200 bg-orange-100 text-orange-800',
+    roundBorder: 'border-l-orange-500', groupPanel: 'border-orange-200 bg-orange-50',
+    heading: 'text-orange-900', outlineBadge: 'border-orange-200 text-orange-700', programRing: 'ring-orange-200',
+  },
 }
 
 const SESSION_STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
@@ -496,26 +526,24 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
   })), [roundSummaryByKey, selectedRounds])
   const daySummaries = useMemo(() => Object.entries(summaryRoundsByDate)
     .map(([date, dayRounds]) => {
-      const learnerCount = dayRounds.reduce((sum, round) => sum + round.learner_count, 0)
+      const people = getAdminSchedulePeopleSummary(dayRounds)
       const waitingCoachCount = dayRounds.reduce((sum, round) => sum + round.waiting_coach_count, 0)
       const walletedCount = dayRounds.reduce((sum, round) => sum + round.walleted_count, 0)
 
       return {
         date,
-        learnerCount,
+        ...people,
         waitingCoachCount,
         walletedCount,
-        roundCount: dayRounds.length,
       }
     })
     .sort((a, b) => a.date.localeCompare(b.date)), [summaryRoundsByDate])
-  const baseTotals = getAdminScheduleSummaryTotals(summary, selectedBranch, selectedCourse)
-  const totalLearners = searchIsApplied ? (searchResult?.learnerCount || 0) : baseTotals.learnerCount
+  const filteredPeople = getAdminSchedulePeopleSummary(filteredSummaryRounds)
+  const displayedPeople = selectedDate
+    ? getAdminSchedulePeopleSummary(dayDetailStatus === 'ready' ? selectedRounds : summaryRoundsByDate[selectedDate] || [])
+    : filteredPeople
   const totalBranches = new Set(filteredSummaryRounds.map((round) => round.branch_id)).size
-  const totalSlots = filteredSummaryRounds.length
-  const filteredSessionCount = searchIsApplied
-    ? (searchResult?.matchCount || 0)
-    : baseTotals.sessionCount
+  const filteredSessionCount = filteredSummaryRounds.reduce((sum, round) => sum + round.session_count, 0)
   const unassignedSessions = filteredSummaryRounds.reduce((sum, round) => sum + round.waiting_coach_count, 0)
   const navigateToMonth = (targetYear: number, targetMonth: number) => {
     if (isPending || pendingNavigationRef.current) return
@@ -591,20 +619,20 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4" data-testid="admin-schedule-totals">
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">รอบเรียน</p>
-              <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{totalSlots}</p>
+              <p className="text-xs text-gray-500">โค้ช</p>
+              <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{filteredPeople.coachCount}</p>
             </div>
-            <Calendar className="h-5 w-5 text-[#2748bf]" />
+            <UserCog className="h-5 w-5 text-[#2748bf]" />
           </CardContent>
         </Card>
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">รายการจอง</p>
+              <p className="text-xs text-gray-500">รายการเรียนในตาราง</p>
               <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{filteredSessionCount}</p>
             </div>
             <Users className="h-5 w-5 text-emerald-500" />
@@ -613,8 +641,8 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">ผู้เรียน</p>
-              <p className="mt-1 text-xl font-bold text-orange-500 sm:text-2xl">{totalLearners}</p>
+              <p className="text-xs text-gray-500">ผู้เรียนในตาราง</p>
+              <p className="mt-1 text-xl font-bold text-orange-500 sm:text-2xl">{filteredPeople.learnerCount}</p>
             </div>
             <User className="h-5 w-5 text-orange-500" />
           </CardContent>
@@ -673,7 +701,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
             </Select>
 
             <p className="text-sm text-gray-500 xl:text-right">
-              {filteredSessionCount} รายการ • {totalBranches} สาขา
+              {searchIsApplied && 'รอบที่พบ: '}{filteredSessionCount} รายการเรียน • {totalBranches} สาขา
             </p>
           </div>
         </CardContent>
@@ -696,46 +724,68 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                 const dayRounds = summaryRoundsByDate[date] || []
                 const isToday = date === today
                 const isSelected = selectedDate === date
-                const daySessionCount = dayRounds.reduce((sum, round) => sum + round.session_count, 0)
-                const dayMarkers = dayRounds.flatMap((round) => Array.from(
-                  { length: Math.min(round.session_count, 10) },
-                  (_, markerIndex) => ({ key: `${round.key}:${markerIndex}`, courseType: round.course_type }),
-                )).slice(0, 10)
+                const dayPeople = getAdminSchedulePeopleSummary(dayRounds)
+                const dayWalletedCount = dayRounds.reduce((sum, round) => sum + round.walleted_count, 0)
+                const dayMarkers = dayPeople.markers.slice(0, 10)
 
                 return (
                   <button
                     key={date}
                     type="button"
                     data-testid={`admin-schedule-calendar-day-${date}`}
+                    aria-label={`${formatShortDate(date)} ผู้เรียน ${dayPeople.learnerCount} คน โค้ช ${dayPeople.coachCount} คน${dayWalletedCount > 0 ? ` อยู่ในกระเป๋า ${dayWalletedCount} รายการ` : ''}`}
                     onClick={() => setSelectedDate(isSelected ? null : date)}
                     className={`min-h-14 rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 sm:min-h-[5.25rem] sm:p-2 ${
                       isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'
                     } ${isToday ? 'shadow-[inset_0_0_0_1px_#f57e3b]' : ''}`}
                   >
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="flex flex-wrap items-center justify-between gap-0.5">
                       <span className={`text-xs font-semibold ${isToday ? 'text-[#f57e3b]' : index % 7 === 0 ? 'text-rose-500' : 'text-gray-700'}`}>
                         {day}
                       </span>
-                      {daySessionCount > 0 && (
-                        <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-500">{daySessionCount}</span>
+                      {dayRounds.length > 0 && (
+                        <span data-testid="calendar-learner-count" title="ผู้เรียนในตาราง (ไม่รวมในกระเป๋า)" className="rounded bg-gray-100 px-1 text-[10px] text-gray-500">{dayPeople.learnerCount}</span>
                       )}
                     </div>
 
-                    {daySessionCount > 0 && (
+                    {dayRounds.length > 0 && (
                       <div className="mt-2 space-y-1">
                         <div className="flex flex-wrap gap-1">
                           {dayMarkers.map((marker) => {
                             const course = COURSE_CONFIG[marker.courseType] || { dot: 'bg-gray-400' }
-                            return <span key={marker.key} className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
+                            return <span key={marker.key} data-testid="calendar-learner-dot" className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
                           })}
                         </div>
-                        <p className="text-[10px] text-gray-500">{dayRounds.length} รอบ</p>
+                        <p className="text-[10px] leading-tight text-gray-500">โค้ช <span className="inline-block whitespace-nowrap">{dayPeople.coachCount} คน</span></p>
+                        {dayWalletedCount > 0 && (
+                          <p data-testid="calendar-wallet-count" title={`อยู่ในกระเป๋า ${dayWalletedCount} รายการ`} className="flex items-center gap-0.5 text-[10px] leading-tight text-violet-700">
+                            <RotateCcw aria-hidden="true" className="h-2.5 w-2.5 shrink-0" />
+                            <span>{dayWalletedCount}</span>
+                          </p>
+                        )}
                       </div>
                     )}
                   </button>
                 )
               })}
             </div>
+            <div data-testid="admin-schedule-course-legend" className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs">
+              {Object.entries(COURSE_CONFIG).map(([type, course]) => (
+                <span key={type} className={`inline-flex items-center gap-1.5 ${course.heading}`}>
+                  <span aria-hidden="true" className={`h-2 w-2 rounded-full ${course.dot}`} />
+                  {course.label}
+                </span>
+              ))}
+              <span className="inline-flex items-center gap-1.5 text-violet-700">
+                <RotateCcw aria-hidden="true" className="h-3 w-3" />
+                อยู่ในกระเป๋า
+              </span>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-gray-500">
+              ตัวเลขและจุดนับผู้เรียนในตาราง ไม่รวมรายการในกระเป๋า (แสดงจุดสูงสุด 10 คน)
+              {' '}ผู้เรียนและโค้ชนับคนไม่ซ้ำในวันหรือช่วงที่เลือก ส่วนรายการเรียนนับแยกแต่ละรอบ
+              {' '}จำนวนผู้เรียนรวมคนที่รอเช็กชื่อ จำนวนโค้ชนับจากการจัดกลุ่มที่มีผู้เรียนในตาราง
+            </p>
           </CardContent>
         </Card>
 
@@ -746,8 +796,8 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                 <p className="font-semibold text-[#153c85]">
                   {selectedDate ? formatDisplayDate(selectedDate) : `ภาพรวมเดือน${MONTH_NAMES_TH[month]}`}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {selectedDate ? `${selectedRoundItems.length} รอบเรียน` : `${totalSlots} รอบเรียน`}
+                <p className="text-xs text-gray-500" data-testid="admin-schedule-detail-people">
+                  ผู้เรียน {displayedPeople.learnerCount} คน • โค้ช {displayedPeople.coachCount} คน
                 </p>
               </div>
               {selectedDate && (
@@ -763,7 +813,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                   <CalendarDays className="mb-3 h-8 w-8 text-[#2748bf]" />
                   <p className="font-semibold text-[#153c85]">เลือกวันที่ในปฏิทินเพื่อดูรายละเอียดรอบเรียน</p>
                   <p className="mt-1 max-w-md text-sm text-gray-500">
-                    หน้านี้แสดงสรุปรายเดือนแบบเบา ๆ ก่อน และจะแสดงกลุ่มโค้ช ผู้เรียน LV โปรแกรมสอน และสถานะรายคนเมื่อเลือกวันที่ต้องการ
+                    เลือกวันเพื่อดูกลุ่มโค้ช รายชื่อผู้เรียน ระดับ โปรแกรมสอน และรายการที่อยู่ในกระเป๋า
                   </p>
                 </div>
 
@@ -772,18 +822,19 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                     {daySummaries.map((summary) => (
                       <button
                         key={summary.date}
+                        data-testid={`admin-schedule-day-summary-${summary.date}`}
                         type="button"
                         onClick={() => setSelectedDate(summary.date)}
                         className="rounded-md border border-gray-100 bg-white px-3 py-2 text-left transition hover:border-[#2748bf]/40 hover:bg-blue-50/40"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-[#153c85]">{formatShortDate(summary.date)}</p>
-                          <Badge variant="outline" className="text-[10px]">{summary.roundCount} รอบ</Badge>
+                          <Badge variant="outline" className="text-[10px]">โค้ช {summary.coachCount} คน</Badge>
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
                           <span>ผู้เรียน {summary.learnerCount} คน</span>
                           {summary.waitingCoachCount > 0 && <span className="text-red-600">รอจัดโค้ช {summary.waitingCoachCount} คน</span>}
-                          {summary.walletedCount > 0 && <span className="text-violet-700">อยู่ในกระเป๋า {summary.walletedCount} คน</span>}
+                          {summary.walletedCount > 0 && <span className="text-violet-700">อยู่ในกระเป๋า {summary.walletedCount} รายการ</span>}
                         </div>
                       </button>
                     ))}
@@ -813,7 +864,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
               <div className="max-h-[44rem] overflow-y-auto p-3">
                 <div className="space-y-3">
                   {selectedRoundItems.map(({ round, buckets }) => {
-                    const course = COURSE_CONFIG[round.course_type] || { label: round.course_type, badge: 'bg-gray-100 text-gray-700' }
+                    const course = COURSE_CONFIG[round.course_type] || { ...DEFAULT_COURSE_STYLE, label: round.course_type || DEFAULT_COURSE_STYLE.label }
                     const roundTimePhase = getRoundTimePhase(round, now)
                     const roundStatus = getRoundStatusFromBuckets(buckets, roundTimePhase)
                     const {
@@ -822,12 +873,13 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                       unassignedLearners,
                       walletedLearners,
                       coachedLearnerCount,
+                      coachCount,
                       waitingCoachCount,
                     } = buckets
                     const groupCount = assignedGroups.length + unassignedGroups.length
 
                     return (
-                      <div key={round.key} className="rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50">
+                      <div key={round.key} data-testid={`admin-schedule-round-${round.key}`} className={`rounded-lg border border-l-4 bg-white p-4 ${course.roundBorder}`}>
                         <div className="flex flex-col gap-3 border-b pb-3 xl:flex-row xl:items-start xl:justify-between">
                           <div className="min-w-0 space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
@@ -853,8 +905,9 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                               </span>
                               <span className="flex items-center gap-1">
                                 <UserCog className="h-3 w-3" />
-                                มีโค้ชแล้ว {coachedLearnerCount} คน
+                                โค้ช {coachCount} คน
                               </span>
+                              <span>ผู้เรียนมีโค้ชแล้ว {coachedLearnerCount} คน</span>
                               {waitingCoachCount > 0 && (
                                 <span className="flex items-center gap-1 text-red-600">
                                   <UserCog className="h-3 w-3" />
@@ -864,7 +917,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                               {walletedLearners.length > 0 && (
                                 <span className="flex items-center gap-1 text-violet-700">
                                   <RotateCcw className="h-3 w-3" />
-                                  อยู่ในกระเป๋า {walletedLearners.length} คน
+                                  อยู่ในกระเป๋า {walletedLearners.length} รายการ
                                 </span>
                               )}
                               <span className="flex items-center gap-1">
@@ -884,12 +937,12 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                             const programStatus = program ? PROGRAM_STATUS_CONFIG[program.status] : null
                             const actualLevelRangeLabel = formatActualGroupLevelRange(group.learners)
                             return (
-                              <div key={group.id} className="rounded-md border border-emerald-100 bg-emerald-50/30 p-3">
+                              <div key={group.id} data-testid={`admin-schedule-group-${group.id}`} className={`rounded-md border p-3 ${course.groupPanel}`}>
                                 <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <p className="font-semibold text-emerald-800">{stripDynamicMemberCount(group.name) || 'กลุ่มโค้ช'}</p>
-                                      <Badge variant="outline" className="border-emerald-200 bg-white text-[10px] text-emerald-700">
+                                      <p className={`font-semibold ${course.heading}`}>{stripDynamicMemberCount(group.name) || 'กลุ่มโค้ช'}</p>
+                                      <Badge variant="outline" className={`bg-white text-[10px] ${course.outlineBadge}`}>
                                         <UserCog className="mr-1 h-3 w-3" />
                                         โค้ช: {group.coach_name || 'ยังไม่ระบุโค้ช'}
                                       </Badge>
@@ -897,14 +950,14 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                                       <span>ผู้เรียนในกลุ่มนี้ {group.learners.length} คน</span>
                                       {actualLevelRangeLabel && (
-                                        <Badge variant="outline" className="border-emerald-200 bg-white text-[10px] text-emerald-700">
+                                        <Badge variant="outline" className={`bg-white text-[10px] ${course.outlineBadge}`}>
                                           {actualLevelRangeLabel}
                                         </Badge>
                                       )}
                                     </div>
                                   </div>
 
-                                  <div className="min-w-0 rounded-md bg-white/80 px-3 py-2 text-xs ring-1 ring-emerald-100 lg:max-w-[18rem]">
+                                  <div className={`min-w-0 rounded-md bg-white/80 px-3 py-2 text-xs ring-1 ${course.programRing} lg:max-w-[18rem]`}>
                                     <div className="mb-1 flex items-center gap-2 text-gray-500">
                                       <BookOpenCheck className="h-3.5 w-3.5" />
                                       <span>โปรแกรมสอนรอบนี้</span>
@@ -1044,10 +1097,10 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                           )}
 
                           {walletedLearners.length > 0 && (
-                            <div className="rounded-md border border-violet-100 bg-violet-50/50 p-3">
+                            <div data-testid="admin-schedule-wallet" className="rounded-md border border-violet-100 bg-violet-50/50 p-3">
                               <div className="mb-2 flex flex-wrap items-center gap-2">
                                 <RotateCcw className="h-4 w-4 text-violet-700" />
-                                <p className="font-semibold text-violet-800">อยู่ในกระเป๋า {walletedLearners.length} คน</p>
+                                <p className="font-semibold text-violet-800">อยู่ในกระเป๋า {walletedLearners.length} รายการ</p>
                                 <Badge className="bg-violet-100 text-[10px] text-violet-700">รอเลือกวันใหม่</Badge>
                               </div>
                               <p className="mb-2 text-xs text-violet-700">

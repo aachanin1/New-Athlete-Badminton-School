@@ -98,8 +98,9 @@ check('monthly summary preserves session, round, waiting-coach, wallet, and uniq
   const summary = buildAdminScheduleMonthSummary({ sessions, groups, walletCredits })
   assert.equal(summary.rounds.length, 2)
   assert.deepEqual(summary.totalsByFilter['all:all'], {
-    sessionCount: 3,
-    learnerCount: 3,
+    sessionCount: 2,
+    learnerCount: 2,
+    coachCount: 1,
     roundCount: 2,
     branchCount: 1,
     waitingCoachCount: 1,
@@ -142,7 +143,7 @@ check('July-equivalent summary reduces slot fan-out from eight calls to four war
   })
   assert.equal(sessionPages + walletChunks + oldGroupChunks, 8)
   assert.equal(sessionPages + walletChunks + dateScopedGroupPages, 4)
-  assert.equal(summary.totalsByFilter['all:all'].sessionCount, 1437)
+  assert.equal(summary.totalsByFilter['all:all'].sessionCount, 1437 - 54)
   assert.equal(summary.totalsByFilter['all:all'].walletedCount, 54)
 })
 

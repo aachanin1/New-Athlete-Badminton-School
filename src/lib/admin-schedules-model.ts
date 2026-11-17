@@ -4,7 +4,7 @@ import {
   type AdminAttendanceGroupRow,
   type AdminAttendanceSlotSessionRow,
 } from '@/lib/admin-attendance-state'
-import { hasExactValidCoachAssignment } from '@/lib/admin-schedule-assignment-state'
+import { getAdminScheduleRoundLearnerBuckets, hasExactValidCoachAssignment } from '@/lib/admin-schedule-assignment-state'
 import type { AttendanceSessionRow } from '@/lib/session-attendance-status'
 import type { LevelCategory, ProgramStatus, StudentType, UserRole } from '@/types/database'
 
@@ -86,6 +86,8 @@ export interface AdminScheduleSummaryRound {
   course_type: string
   session_count: number
   learner_count: number
+  learner_keys: string[]
+  coach_ids: string[]
   waiting_coach_count: number
   walleted_count: number
 }
@@ -93,6 +95,7 @@ export interface AdminScheduleSummaryRound {
 export interface AdminScheduleSummaryTotals {
   sessionCount: number
   learnerCount: number
+  coachCount: number
   roundCount: number
   branchCount: number
   waitingCoachCount: number
@@ -161,6 +164,8 @@ export interface AdminScheduleRound {
   course_type_id: string
   course_type: string
   learner_count: number
+  learner_keys: string[]
+  coach_ids: string[]
   groups: AdminScheduleRoundGroup[]
   unassigned_learners: AdminScheduleSession[]
 }
@@ -195,17 +200,40 @@ function summaryFilterKey(branchId: string, courseType: string) {
   return `${branchId}:${courseType}`
 }
 
+function getScheduledLearnerKey(session: AdminScheduleSessionRow) {
+  if (session.status === 'walleted') return null
+  const student = getAdminScheduleStudentRef(session)
+  return student ? `${student.type}:${student.id}` : null
+}
+
+// People are distinct within the displayed scope, even when they have several rounds.
+// Wallet history remains visible separately and never supplies a learner marker.
+export function getAdminSchedulePeopleSummary(rounds: {
+  learner_keys: string[]
+  coach_ids: string[]
+  course_type: string
+}[]) {
+  const learners = new Map<string, { key: string; courseType: string }>()
+  const coachIds = new Set<string>()
+  rounds.forEach((round) => {
+    round.learner_keys.forEach((key) => {
+      if (!learners.has(key)) learners.set(key, { key, courseType: round.course_type })
+    })
+    round.coach_ids.forEach((id) => coachIds.add(id))
+  })
+  return { learnerCount: learners.size, coachCount: coachIds.size, markers: Array.from(learners.values()) }
+}
+
 function buildSummaryTotals(sessions: AdminScheduleSessionRow[], rounds: AdminScheduleSummaryRound[]) {
-  const learnerKeys = new Set<string>()
+  const people = getAdminSchedulePeopleSummary(rounds)
   const branchIds = new Set<string>()
   sessions.forEach((session) => {
-    const student = getAdminScheduleStudentRef(session)
-    if (student) learnerKeys.add(`${student.type}:${student.id}`)
     branchIds.add(session.branch_id)
   })
   return {
-    sessionCount: sessions.length,
-    learnerCount: learnerKeys.size,
+    sessionCount: sessions.filter((session) => session.status !== 'walleted').length,
+    learnerCount: people.learnerCount,
+    coachCount: people.coachCount,
     roundCount: rounds.length,
     branchCount: branchIds.size,
     waitingCoachCount: rounds.reduce((sum, round) => sum + round.waiting_coach_count, 0),
@@ -221,17 +249,24 @@ export function buildAdminScheduleMonthSummary(input: {
   const sessions = filterVisibleAdminScheduleSessions(input.sessions, input.walletCredits)
   const sessionById = new Map(sessions.map((session) => [session.id, session]))
   const exactAssignedSessionIds = new Set<string>()
+  const coachIdsByRound = new Map<string, Set<string>>()
 
   input.groups.forEach((group) => {
     if (!hasExactValidCoachAssignment({
       name: group.name,
       coach_id: group.coach_id,
       coach_profile_id: group.profiles?.id || null,
-      coach_name: group.profiles?.full_name || (group.profiles?.id ? '__resolved_without_monthly_name__' : null),
+      coach_name: group.profiles?.full_name || null,
       coach_role: group.profiles?.role || null,
     })) return
     ;(group.coach_assignment_group_students || []).forEach((member) => {
-      if (sessionById.has(member.booking_session_id)) exactAssignedSessionIds.add(member.booking_session_id)
+      const session = sessionById.get(member.booking_session_id)
+      if (!session || session.status === 'walleted' || session.schedule_slot_id !== group.schedule_slot_id) return
+      exactAssignedSessionIds.add(session.id)
+      const key = getAdminScheduleRoundKey(session)
+      const coachIds = coachIdsByRound.get(key) || new Set<string>()
+      if (group.coach_id) coachIds.add(group.coach_id)
+      coachIdsByRound.set(key, coachIds)
     })
   })
 
@@ -252,15 +287,21 @@ export function buildAdminScheduleMonthSummary(input: {
         course_type: session.bookings?.course_types?.name || '',
         session_count: 0,
         learner_count: 0,
+        learner_keys: [],
+        coach_ids: Array.from(coachIdsByRound.get(key) || []),
         waiting_coach_count: 0,
         walleted_count: 0,
       }
       roundMap.set(key, round)
     }
-    round.session_count += 1
-    round.learner_count += 1
     if (session.status === 'walleted') round.walleted_count += 1
-    else if (!exactAssignedSessionIds.has(session.id)) round.waiting_coach_count += 1
+    else {
+      round.session_count += 1
+      const learnerKey = getScheduledLearnerKey(session)
+      if (learnerKey && !round.learner_keys.includes(learnerKey)) round.learner_keys.push(learnerKey)
+      round.learner_count = round.learner_keys.length
+      if (!exactAssignedSessionIds.has(session.id)) round.waiting_coach_count += 1
+    }
   })
 
   const rounds = Array.from(roundMap.values()).sort((a, b) => (
@@ -296,6 +337,7 @@ export function getAdminScheduleSummaryTotals(
   return summary.totalsByFilter[summaryFilterKey(branchId, courseType)] || {
     sessionCount: 0,
     learnerCount: 0,
+    coachCount: 0,
     roundCount: 0,
     branchCount: 0,
     waitingCoachCount: 0,
@@ -405,12 +447,18 @@ export function buildAdminScheduleDayDetail(input: {
         course_type_id: session.course_type_id,
         course_type: session.course_type,
         learner_count: 0,
+        learner_keys: [],
+        coach_ids: [],
         groups: [],
         unassigned_learners: [],
       })
     }
     const round = roundMap.get(session.round_key)
-    if (round) round.learner_count += 1
+    if (round && session.status !== 'walleted' && session.student_id && session.student_type) {
+      const key = `${session.student_type}:${session.student_id}`
+      if (!round.learner_keys.includes(key)) round.learner_keys.push(key)
+      round.learner_count = round.learner_keys.length
+    }
   })
 
   const assignedIds = new Set<string>()
@@ -453,6 +501,7 @@ export function buildAdminScheduleDayDetail(input: {
     sessions,
     rounds: Array.from(roundMap.values()).map((round) => ({
       ...round,
+      coach_ids: getAdminScheduleRoundLearnerBuckets(round).coachIds,
       groups: round.groups.sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name, 'th')),
       unassigned_learners: round.unassigned_learners.sort((a, b) => a.learner_name.localeCompare(b.learner_name, 'th')),
     })).sort((a, b) => `${a.date} ${a.start_time} ${a.branch_name} ${a.course_type}`
@@ -509,8 +558,8 @@ export function buildAdminScheduleSearchCandidateResult(input: {
   const boundedSet = new Set(boundedRoundKeys)
   const boundedSessions = sessions.filter((session) => boundedSet.has(getAdminScheduleRoundKey(session)))
   const learnerKeys = new Set(sessions.flatMap((session) => {
-    const student = getAdminScheduleStudentRef(session)
-    return student ? [`${student.type}:${student.id}`] : []
+    const key = getScheduledLearnerKey(session)
+    return key ? [key] : []
   }))
 
   return {
@@ -558,8 +607,8 @@ export function buildAdminScheduleSearchResult(input: {
   const boundedRoundKeys = roundKeys.slice(0, input.limit)
   const boundedSet = new Set(boundedRoundKeys)
   const learnerKeys = new Set(matchingSessions.flatMap((session) => {
-    const student = getAdminScheduleStudentRef(session)
-    return student ? [`${student.type}:${student.id}`] : []
+    const key = getScheduledLearnerKey(session)
+    return key ? [key] : []
   }))
   return {
     roundKeys: boundedRoundKeys,

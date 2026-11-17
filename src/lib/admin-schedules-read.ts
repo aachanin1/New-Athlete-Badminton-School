@@ -185,17 +185,15 @@ async function fetchGroupsForDateRange(
   supabase: DatabaseClient,
   startDate: string,
   endDate: string,
-  detailed: boolean,
   metrics: ReadMetrics,
 ) {
   const rows: AdminScheduleGroupRow[] = []
-  const profileSelection = detailed ? 'id, full_name, role' : 'id, role'
 
   for (let start = 0; ; start += QUERY_PAGE_SIZE) {
     addCall(metrics, 'groupPages')
     const { data, error } = await supabase.from('coach_assignment_groups').select(`
       id, schedule_slot_id, coach_id, name, level_min, level_max, sort_order,
-      profiles!coach_assignment_groups_coach_id_fkey(${profileSelection}),
+      profiles!coach_assignment_groups_coach_id_fkey(id, full_name, role),
       coach_assignment_group_students(booking_session_id),
       schedule_slots!inner(date)
     `).gte('schedule_slots.date', startDate).lte('schedule_slots.date', endDate)
@@ -455,7 +453,7 @@ export async function loadAdminScheduleMonthSummary(
   const [sessions, branches, groups] = await measurePhase(metrics, 'summaryBase', () => Promise.all([
     fetchSessions(supabase, startDate, endDate, false, metrics),
     getCachedActiveBranches(metrics),
-    fetchGroupsForDateRange(supabase, startDate, endDate, false, metrics),
+    fetchGroupsForDateRange(supabase, startDate, endDate, metrics),
   ]))
   const walletSessionIds = sessions.filter((session) => session.status === 'walleted').map((session) => session.id)
   const walletCredits = await measurePhase(metrics, 'summaryWallet', () => (
@@ -474,7 +472,7 @@ export async function loadAdminScheduleDayDetail(supabase: DatabaseClient, date:
   addRows(metrics, 'slotSessionsDerived', slotSessions.length)
   const [walletCredits, groups, teachingPrograms, levels] = await measurePhase(metrics, 'dayRelated', () => Promise.all([
     walletSessionIds.length ? fetchWalletCredits(supabase, walletSessionIds, metrics) : [],
-    slotIds.length ? fetchGroupsForDateRange(supabase, date, date, true, metrics) : [],
+    slotIds.length ? fetchGroupsForDateRange(supabase, date, date, metrics) : [],
     slotIds.length ? fetchTeachingPrograms(supabase, slotIds, metrics) : [],
     getCachedActiveLevels(metrics),
   ]))

@@ -67,6 +67,9 @@ export function getAdminScheduleRoundLearnerBuckets<
     (sum, group) => sum + group.learners.length,
     0,
   )
+  const coachIds = Array.from(new Set(assignedGroups.flatMap((group) => (
+    group.coach_id ? [group.coach_id] : []
+  ))))
 
   return {
     assignedGroups,
@@ -74,6 +77,8 @@ export function getAdminScheduleRoundLearnerBuckets<
     unassignedLearners,
     walletedLearners,
     coachedLearnerCount,
+    coachIds,
+    coachCount: coachIds.length,
     waitingCoachCount: groupedWaitingCoachCount + unassignedLearners.length,
   }
 }
