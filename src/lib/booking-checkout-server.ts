@@ -44,17 +44,26 @@ export async function loadPreviousBookings(actor: string): Promise<PreviousBooki
       if (members.error || !members.data?.length || members.data.length > 100) throw Error('BOOKING_UX_SCOPE_LIMIT')
       ids = members.data.map(x => x.booking_id)
     }
-    const [bills, sessions] = await Promise.all([
+    const [bills, sessions, redeemedUnits] = await Promise.all([
       db.from('bookings').select('id,branch_id,total_sessions,package_participants,child_id').eq('user_id', actor).eq('status', 'verified').eq('course_type_id', b.course_type_id).in('id', ids),
-      db.from('booking_sessions').select('booking_id,branch_id,child_id').in('booking_id', ids).limit(2001),
+      db.from('booking_sessions').select('id,booking_id,branch_id,child_id,rescheduled_from_id,is_makeup').in('booking_id', ids).limit(2001),
+      db.from('booking_package_units').select('session_ids', { count: 'exact' }).in('booking_id', ids).eq('status', 'redeemed').limit(2001),
     ])
-    if (bills.error || sessions.error || (sessions.data?.length || 0) > 2000) throw Error('BOOKING_UX_READ_FAILED')
+    if (bills.error || sessions.error || redeemedUnits.error || (sessions.data?.length || 0) > 2000
+      || redeemedUnits.count !== redeemedUnits.data?.length || redeemedUnits.count > 2000) {
+      throw Error('BOOKING_UX_READ_FAILED')
+    }
     const owned = new Set((bills.data || []).map(x => x.id))
     const rows = (sessions.data || []).filter(s => owned.has(s.booking_id))
+    const redeemedSessionIds = new Set(redeemedUnits.data.flatMap(unit => unit.session_ids ?? []))
+    // A purchased round keeps its original branch after it is moved or stored.
+    // Package redemptions can also create root sessions, so check their receipts.
+    const purchasedRounds = rows.filter(s => s.rescheduled_from_id === null && !s.is_makeup && !redeemedSessionIds.has(s.id))
+    const branchIds = [...new Set([...(bills.data || []).map(x => x.branch_id), ...purchasedRounds.map(s => s.branch_id)])]
     const participants = [...new Set((bills.data || []).flatMap(x => Array.isArray(x.package_participants) ? x.package_participants as Array<string | null> : rows.some(s => s.booking_id === x.id) ? [] : [x.child_id]).concat(rows.map(s => s.child_id)))]
     const snapshot = b.package_snapshot as { id?: string } | null
     const course = b.course_types as unknown as { name: string } | null
-    return { course: course?.name || '', branchIds: [...new Set([...(bills.data || []).map(x => x.branch_id), ...rows.map(x => x.branch_id)])], quantity: (bills.data || []).reduce((n, x) => n + x.total_sessions, 0), packageId: snapshot?.id || null, participants }
+    return { course: course?.name || '', branchIds, quantity: (bills.data || []).reduce((n, x) => n + x.total_sessions, 0), packageId: snapshot?.id || null, participants }
   }))
 }
 

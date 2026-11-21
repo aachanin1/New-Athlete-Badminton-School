@@ -1,10 +1,20 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Dialog,
   DialogContent,
@@ -125,11 +135,18 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null)
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
+  const [slotToConfirm, setSlotToConfirm] = useState<PickedSlot | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const submitting = useRef(false)
+  const sourceBranch = branches.find(branch => branch.id === selectedSession?.branch_id)
+  const sourceBranchName = selectedSession?.branches?.name || sourceBranch?.name || 'สาขาเดิม'
+  const orderedBranches = sourceBranch
+    ? [sourceBranch, ...branches.filter(branch => branch.id !== sourceBranch.id)]
+    : branches
 
   const groupedSessions = useMemo(() => {
     const map = new Map<string, SessionRow[]>()
@@ -205,6 +222,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
   const openDialog = (session: SessionRow) => {
     setSelectedSession(session)
     setPickedSlot(null)
+    setSlotToConfirm(null)
     setExpandedDate(null)
     setError(null)
     setSuccess(false)
@@ -246,42 +264,50 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
     })
   }
 
-  const handleSubmit = async () => {
-    if (!selectedSession || !pickedSlot) {
-      setError('กรุณาเลือกวันและรอบเรียนใหม่')
-      return
-    }
-
+  const submitSlot = async (slot: PickedSlot) => {
+    if (!selectedSession || slot !== pickedSlot || submitting.current) return
+    submitting.current = true
     setLoading(true)
     setError(null)
 
-    const response = await fetch('/api/reschedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: selectedSession.id,
-        targetDate: pickedSlot.date,
-        startTime: pickedSlot.start,
-        endTime: pickedSlot.end,
-        branchId: pickedSlot.branchId,
-        scheduleTemplateId: pickedSlot.templateId || null,
-      }),
-    })
-
-    const result = await response.json() as { success?: boolean; error?: string }
-
-    if (!response.ok || !result.success) {
-      setError(result.error || 'เปลี่ยนวันเรียนไม่สำเร็จ กรุณาลองใหม่')
+    try {
+      const response = await fetch('/api/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: selectedSession.id,
+          targetDate: slot.date,
+          startTime: slot.start,
+          endTime: slot.end,
+          branchId: slot.branchId,
+          scheduleTemplateId: slot.templateId || null,
+        }),
+      })
+      const result = await response.json() as { success?: boolean; error?: string }
+      if (!response.ok || !result.success) throw new Error(result.error || 'เปลี่ยนวันเรียนไม่สำเร็จ กรุณาลองใหม่')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'เปลี่ยนวันเรียนไม่สำเร็จ กรุณาลองใหม่')
+      submitting.current = false
       setLoading(false)
       return
     }
 
     setSuccess(true)
-    setLoading(false)
     setTimeout(() => {
+      submitting.current = false
+      setLoading(false)
       setDialogOpen(false)
       router.refresh()
     }, 900)
+  }
+
+  const handleSubmit = () => {
+    if (!selectedSession || !pickedSlot || submitting.current) return
+    if (pickedSlot.branchId !== selectedSession.branch_id) {
+      setSlotToConfirm(pickedSlot)
+      return
+    }
+    void submitSlot(pickedSlot)
   }
 
   if (sessions.length === 0) {
@@ -400,7 +426,9 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
         })}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={open => {
+        if (!submitting.current) setDialogOpen(open)
+      }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           {success ? (
             <div className="py-6 text-center">
@@ -454,7 +482,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                           key={dateStr}
                           type="button"
                           onClick={() => handleDayClick(day)}
-                          disabled={!selectable}
+                          disabled={loading || !selectable}
                           className={`h-9 rounded-md text-sm font-medium transition-all ${
                             selectable ? 'hover:bg-[#2748bf]/10' : 'cursor-not-allowed text-gray-300'
                           } ${isPicked ? 'bg-[#2748bf] text-white' : ''} ${isExpanded && !isPicked ? 'ring-2 ring-[#f57e3b]' : ''}`}
@@ -471,6 +499,13 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                   const date = new Date(selectedYear, selectedMonth, day)
                   const dayIndex = date.getDay()
                   const courseType = getCourseType(selectedSession)
+                  const groups = orderedBranches.map(branch => ({
+                    branch,
+                    slots: getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayIndex, expandedDate)
+                      .filter(slot => isFutureSlot(expandedDate, slot.start)),
+                  }))
+                  const sourceHasSlots = groups.some(({ branch, slots }) => branch.id === selectedSession.branch_id
+                    && slots.some(slot => !isSlotBlocked(expandedDate, slot.start, slot.end, branch.id)))
 
                   return (
                     <div className="space-y-3 rounded-lg border bg-gray-50 p-3">
@@ -479,17 +514,17 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                         {DAY_LABELS[dayIndex]} {day} {MONTH_NAMES_TH[selectedMonth]} · เลือกรอบเรียน
                       </p>
 
-                      {branches.map((branch) => {
-                        const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayIndex, expandedDate)
-                          .filter((slot) => isFutureSlot(expandedDate, slot.start))
+                      {!sourceHasSlots && <p className="text-sm text-gray-700">สาขาเดิมไม่มีรอบในวันนี้ เลือกวันอื่นหรือสาขาอื่นได้</p>}
+                      {groups.map(({ branch, slots }) => {
                         if (slots.length === 0) return null
 
                         return (
-                          <div key={branch.id}>
-                            <p className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                          <div key={branch.id} role="group" aria-label={branch.name}>
+                            <div className="mb-1 flex flex-wrap items-center gap-1 text-sm font-medium text-gray-700">
                               <MapPin className="h-3 w-3" />
                               {branch.name}
-                            </p>
+                              {branch.id === selectedSession.branch_id && <Badge variant="secondary">สาขาเดิม</Badge>}
+                            </div>
                             <div className="flex flex-wrap gap-2">
                               {slots.map((slot) => {
                                 const isSlotPicked = pickedSlot?.date === expandedDate && pickedSlot.start === slot.start && pickedSlot.branchId === branch.id
@@ -499,7 +534,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                                     key={`${branch.id}-${slot.start}-${slot.end}`}
                                     type="button"
                                     size="sm"
-                                    disabled={isBlocked}
+                                    disabled={loading || isBlocked}
                                     variant={isSlotPicked ? 'default' : 'outline'}
                                     className={isSlotPicked ? 'bg-[#2748bf]' : isBlocked ? 'cursor-not-allowed border-orange-200 bg-orange-50 text-orange-700 opacity-70' : ''}
                                     onClick={() => handleSlotPick(day, slot.start, slot.end, branch, slot.templateId)}
@@ -546,6 +581,30 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                   </Button>
                 </div>
               </div>
+              <AlertDialog open={Boolean(slotToConfirm)} onOpenChange={open => {
+                if (!open) setSlotToConfirm(null)
+              }}>
+                <AlertDialogContent className="w-[calc(100%-2rem)] rounded-lg">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>ยืนยันการเปลี่ยนสาขา</AlertDialogTitle>
+                    {slotToConfirm && (
+                      <AlertDialogDescription>
+                        ย้ายจาก {sourceBranchName} ไป {slotToConfirm.branchName}
+                        <br />
+                        {formatDateThai(slotToConfirm.date)} · {fmtTime(slotToConfirm.start)}–{fmtTime(slotToConfirm.end)}
+                      </AlertDialogDescription>
+                    )}
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>กลับไปเลือก</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => {
+                      if (slotToConfirm) void submitSlot(slotToConfirm)
+                    }}>
+                      ยืนยันเปลี่ยนสาขา
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </DialogContent>
