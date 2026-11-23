@@ -234,6 +234,12 @@ function formatShortDate(date: string) {
   return formatThaiDateWithWeekday(date)
 }
 
+function getCoachLabel(coachCount: number, coachRoundCount: number) {
+  return coachRoundCount > coachCount
+    ? { value: coachRoundCount, unit: 'รอบ', valueClassName: 'font-bold text-[#153c85]' }
+    : { value: coachCount, unit: 'คน', valueClassName: undefined }
+}
+
 function formatLevel(session: ScheduleSession) {
   return formatScheduleLevel(session.level, session.level_name)
 }
@@ -533,6 +539,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
       return {
         date,
         ...people,
+        coachLabel: getCoachLabel(people.coachCount, people.coachRoundCount),
         waitingCoachCount,
         walletedCount,
       }
@@ -737,9 +744,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                 const isToday = date === today
                 const isSelected = selectedDate === date
                 const dayPeople = getAdminSchedulePeopleSummary(dayRounds)
-                const hasRepeatCoach = dayPeople.coachRoundCount > dayPeople.coachCount
-                const coachValue = hasRepeatCoach ? dayPeople.coachRoundCount : dayPeople.coachCount
-                const coachUnit = hasRepeatCoach ? 'รอบ' : 'คน'
+                const coachLabel = getCoachLabel(dayPeople.coachCount, dayPeople.coachRoundCount)
                 const dayWalletedCount = dayRounds.reduce((sum, round) => sum + round.walleted_count, 0)
                 const dayMarkers = dayPeople.markers.slice(0, 10)
 
@@ -748,7 +753,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                     key={date}
                     type="button"
                     data-testid={`admin-schedule-calendar-day-${date}`}
-                    aria-label={`${formatShortDate(date)} ผู้เรียน ${dayPeople.learnerCount} คน โค้ช ${coachValue} ${coachUnit}${dayWalletedCount > 0 ? ` อยู่ในกระเป๋า ${dayWalletedCount} รายการ` : ''}`}
+                    aria-label={`${formatShortDate(date)} ผู้เรียน ${dayPeople.learnerCount} คน โค้ช ${coachLabel.value} ${coachLabel.unit}${dayWalletedCount > 0 ? ` อยู่ในกระเป๋า ${dayWalletedCount} รายการ` : ''}`}
                     onClick={() => setSelectedDate(isSelected ? null : date)}
                     className={`min-h-14 rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 sm:min-h-[5.25rem] sm:p-2 ${
                       isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'
@@ -773,7 +778,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                         </div>
                         <p className="text-[10px] leading-tight text-gray-500">
                           โค้ช <span className="inline-block max-w-full">
-                            <span className={hasRepeatCoach ? 'font-bold text-[#153c85]' : undefined}>{coachValue}</span>{' '}{coachUnit}
+                            <span className={coachLabel.valueClassName}>{coachLabel.value}</span>{' '}{coachLabel.unit}
                           </span>
                         </p>
                         {dayWalletedCount > 0 && (
@@ -858,7 +863,11 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-[#153c85]">{formatShortDate(summary.date)}</p>
-                          <Badge variant="outline" className="text-[10px]">โค้ช {summary.coachCount} คน</Badge>
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            <span>
+                              โค้ช <span className={summary.coachLabel.valueClassName}>{summary.coachLabel.value}</span>{' '}{summary.coachLabel.unit}
+                            </span>
+                          </Badge>
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
                           <span>ผู้เรียน {summary.learnerCount} คน</span>

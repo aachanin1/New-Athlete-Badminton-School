@@ -19,6 +19,18 @@ const page = await context.newPage()
 page.on('pageerror', e => errors.push(e.message))
 page.on('response', res => { if (res.url().includes('/api/admin/schedules/')) requests.push({ url: res.url(), status: res.status() }) })
 const day = date => page.getByTestId('admin-schedule-calendar-day-' + date)
+const daySummary = date => page.getByTestId('admin-schedule-day-summary-' + date)
+async function expectSummaryCoach(date, count, unit) {
+  const label = daySummary(date).getByText(`โค้ช ${count} ${unit}`, { exact: true })
+  await expect(label).toBeVisible()
+  const value = label.getByText(String(count), { exact: true })
+  if (unit === 'รอบ') {
+    await expect(value).toHaveCSS('color', 'rgb(21, 60, 133)')
+    await expect(value).toHaveCSS('font-weight', '700')
+  } else {
+    await expect(value).not.toHaveCSS('color', 'rgb(21, 60, 133)')
+  }
+}
 async function expectCounts(date, learners, coaches, wallets, coachUnit = 'คน') {
   await expect(day(date).getByTestId('calendar-learner-count')).toHaveText(String(learners))
   const coachLabel = day(date).getByText(`โค้ช ${coaches} ${coachUnit}`, { exact: true })
@@ -50,9 +62,11 @@ try {
   await expectCounts('2026-11-17', 0, 0, 1)
   await expectCounts('2026-11-18', 1, 1, 0)
   await expectCounts('2026-11-23', 11, 3, 0, 'รอบ')
-  await expect(page.getByTestId('admin-schedule-day-summary-2026-11-16')).toContainText('ผู้เรียน 2 คน')
-  await expect(page.getByTestId('admin-schedule-day-summary-2026-11-16')).toContainText('โค้ช 1 คน')
-  checks.push('month cards, day summaries, calendar numbers and dots exclude Wallet; duplicate coach counted once')
+  await expect(daySummary('2026-11-16')).toContainText('ผู้เรียน 2 คน')
+  await expectSummaryCoach('2026-11-16', 2, 'รอบ')
+  await expectSummaryCoach('2026-11-17', 0, 'คน')
+  await expectSummaryCoach('2026-11-18', 1, 'คน')
+  checks.push('calendar and day-summary labels and emphasis agree; monthly headcount and Wallet rules remain correct')
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await noOverflow('width ' + width)
@@ -102,7 +116,8 @@ try {
   await page.getByRole('option', { name: 'พระราม 2', exact: true }).click()
   await expectTotals(11, 2, 11)
   await expectCounts('2026-11-23', 11, 3, 0, 'รอบ')
-  await day('2026-11-23').click()
+  await expectSummaryCoach('2026-11-23', 3, 'รอบ')
+  await daySummary('2026-11-23').click()
   const rama2Detail = page.getByTestId('admin-schedule-detail-people')
   await expect(rama2Detail).toHaveText(/ผู้เรียน 11 คน\s*· โคัช จ้า NA ราม2 2 รอบ\s*\/ โค้ช วสันต์ NA พระราม2 1 รอบ/)
   for (const text of ['2 รอบ', '1 รอบ']) {
@@ -131,6 +146,7 @@ try {
   await page.getByPlaceholder('ค้นหาผู้เรียน ผู้ปกครอง โค้ช สาขา...').fill('wallet-a')
   await expectTotals(1, 1, 1)
   await expectCounts('2026-11-16', 1, 1, 2)
+  await expectSummaryCoach('2026-11-16', 1, 'คน')
   await day('2026-11-16').click()
   await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText(/ผู้เรียน 1 คน\s*· โค้ชทดสอบ 1 รอบ/)
   await expect(page.getByText('wallet-a', { exact: true })).toBeVisible()
