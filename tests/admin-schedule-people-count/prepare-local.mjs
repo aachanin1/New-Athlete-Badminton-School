@@ -46,8 +46,8 @@ for (const [slot, start, end, ids] of [
   })))
 }
 for (const [id, slot, coachId, name, ids] of [
-  ['rama2-a', 'rama2-first', 'coach-jaa', 'โค้ช จ้า NA ราม2', firstRama2],
-  ['rama2-b', 'rama2-second', 'coach-jaa', 'โค้ช จ้า NA ราม2', secondRama2.slice(0, 4)],
+  ['rama2-a', 'rama2-first', 'coach-jaa', 'โคัช จ้า NA ราม2', firstRama2],
+  ['rama2-b', 'rama2-second', 'coach-jaa', 'โคัช จ้า NA ราม2', secondRama2.slice(0, 4)],
   ['rama2-c', 'rama2-second', 'coach-wasan', 'โค้ช วสันต์ NA พระราม2', secondRama2.slice(4)],
 ]) {
   data.groups.push({

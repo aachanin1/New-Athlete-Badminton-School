@@ -820,7 +820,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                   {selectedCoachRounds.length > 0 ? (
                     selectedCoachRounds.map(({ id, name, count }, index) => (
                       <span key={id} className="max-w-full break-words">
-                        {index === 0 ? '·' : '/'} {name.startsWith('โค้ช') ? name : `โค้ช ${name}`}{' '}
+                        {index === 0 ? '·' : '/'} {/^โค[้ั]ช/.test(name) ? name : `โค้ช ${name}`}{' '}
                         <strong className="whitespace-nowrap font-bold text-[#153c85]">{count} รอบ</strong>
                       </span>
                     ))

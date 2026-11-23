@@ -104,7 +104,7 @@ try {
   await expectCounts('2026-11-23', 11, 3, 0, 'รอบ')
   await day('2026-11-23').click()
   const rama2Detail = page.getByTestId('admin-schedule-detail-people')
-  await expect(rama2Detail).toHaveText(/ผู้เรียน 11 คน\s*· โค้ช จ้า NA ราม2 2 รอบ\s*\/ โค้ช วสันต์ NA พระราม2 1 รอบ/)
+  await expect(rama2Detail).toHaveText(/ผู้เรียน 11 คน\s*· โคัช จ้า NA ราม2 2 รอบ\s*\/ โค้ช วสันต์ NA พระราม2 1 รอบ/)
   for (const text of ['2 รอบ', '1 รอบ']) {
     await expect(rama2Detail.getByText(text, { exact: true })).toHaveCSS('color', 'rgb(21, 60, 133)')
   }
