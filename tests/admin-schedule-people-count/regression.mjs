@@ -24,6 +24,8 @@ check('screenshot pattern: two active learners, two Wallet learners, one coach a
   const people = model.getAdminSchedulePeopleSummary(summary.rounds)
   assert.equal(people.learnerCount, 2)
   assert.equal(people.coachCount, 1)
+  assert.equal(people.coachRoundCount, 2)
+  assert.deepEqual([...people.coachRoundCounts], [['coach-a', 2]])
   assert.equal(people.markers.length, 2)
   const detail = dayDetail()
   assert.deepEqual(detail.rounds.map(r => r.learner_count), [1, 1])
@@ -34,7 +36,8 @@ check('Wallet-only day remains discoverable but contributes zero learners, marke
   const f = { ...fixture, sessions: fixture.sessions.filter(s => s.status === 'walleted') }
   const summary = model.buildAdminScheduleMonthSummary(f)
   assert.equal(summary.rounds.length, 1)
-  assert.deepEqual(model.getAdminSchedulePeopleSummary(summary.rounds), { learnerCount: 0, coachCount: 0, markers: [] })
+  const people = model.getAdminSchedulePeopleSummary(summary.rounds)
+  assert.deepEqual([people.learnerCount, people.coachCount, people.coachRoundCount, people.markers], [0, 0, 0, []])
   assert.equal(summary.rounds[0].walleted_count, 2)
   assert.equal(dayDetail(f).rounds[0].learner_count, 0)
   assert.equal(getAdminScheduleRoundLearnerBuckets(dayDetail(f).rounds[0]).coachCount, 0)
@@ -61,6 +64,11 @@ check('coaches deduplicate by identity; distinct same-name coaches and head coac
   const f = { ...fixture, groups: [...fixture.groups, group('repeat', ['active-a']), group('second', ['active-a'], { coach_id: 'coach-b', profiles: { id: 'coach-b', full_name: 'โค้ชทดสอบ', role: 'head_coach' } })] }
   assert.equal(model.buildAdminScheduleMonthSummary(f).totalsByFilter['all:all'].coachCount, 2)
   assert.equal(getAdminScheduleRoundLearnerBuckets(dayDetail(f).rounds[0]).coachCount, 2)
+  const month = model.getAdminSchedulePeopleSummary(model.buildAdminScheduleMonthSummary(f).rounds)
+  const day = model.getAdminSchedulePeopleSummary(dayDetail(f).rounds)
+  assert.equal(month.coachRoundCount, 3)
+  assert.deepEqual([...month.coachRoundCounts], [['coach-a', 2], ['coach-b', 1]])
+  assert.deepEqual(day.coachRoundCounts, month.coachRoundCounts)
 })
 check('repeat learner across rounds counts once; self and child with same raw ID remain distinct', () => {
   const f = { ...fixture, sessions: [session('same'), session('repeat', { child_id: 'same', schedule_slot_id: 'slot-b' }), session('self', { child_id: null, bookings: { ...fixture.sessions[0].bookings, user_id: 'same', learner_type: 'adult' } })] }

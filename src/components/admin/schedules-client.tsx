@@ -542,6 +542,18 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
   const displayedPeople = selectedDate
     ? getAdminSchedulePeopleSummary(dayDetailStatus === 'ready' ? selectedRounds : summaryRoundsByDate[selectedDate] || [])
     : filteredPeople
+  const selectedCoachNames = new Map<string, string>()
+  selectedRoundItems.forEach(({ buckets }) => {
+    buckets.assignedGroups.forEach(({ coach_id, coach_name }) => {
+      if (coach_id && coach_name) selectedCoachNames.set(coach_id, coach_name)
+    })
+  })
+  const selectedCoachRounds = Array.from(displayedPeople.coachRoundCounts)
+    .flatMap(([id, count]) => {
+      const name = selectedCoachNames.get(id)
+      return name ? [{ id, name, count }] : []
+    })
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'th'))
   const totalBranches = new Set(filteredSummaryRounds.map((round) => round.branch_id)).size
   const filteredSessionCount = filteredSummaryRounds.reduce((sum, round) => sum + round.session_count, 0)
   const unassignedSessions = filteredSummaryRounds.reduce((sum, round) => sum + round.waiting_coach_count, 0)
@@ -725,6 +737,9 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                 const isToday = date === today
                 const isSelected = selectedDate === date
                 const dayPeople = getAdminSchedulePeopleSummary(dayRounds)
+                const hasRepeatCoach = dayPeople.coachRoundCount > dayPeople.coachCount
+                const coachValue = hasRepeatCoach ? dayPeople.coachRoundCount : dayPeople.coachCount
+                const coachUnit = hasRepeatCoach ? 'รอบ' : 'คน'
                 const dayWalletedCount = dayRounds.reduce((sum, round) => sum + round.walleted_count, 0)
                 const dayMarkers = dayPeople.markers.slice(0, 10)
 
@@ -733,7 +748,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                     key={date}
                     type="button"
                     data-testid={`admin-schedule-calendar-day-${date}`}
-                    aria-label={`${formatShortDate(date)} ผู้เรียน ${dayPeople.learnerCount} คน โค้ช ${dayPeople.coachCount} คน${dayWalletedCount > 0 ? ` อยู่ในกระเป๋า ${dayWalletedCount} รายการ` : ''}`}
+                    aria-label={`${formatShortDate(date)} ผู้เรียน ${dayPeople.learnerCount} คน โค้ช ${coachValue} ${coachUnit}${dayWalletedCount > 0 ? ` อยู่ในกระเป๋า ${dayWalletedCount} รายการ` : ''}`}
                     onClick={() => setSelectedDate(isSelected ? null : date)}
                     className={`min-h-14 rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 sm:min-h-[5.25rem] sm:p-2 ${
                       isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'
@@ -756,7 +771,11 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                             return <span key={marker.key} data-testid="calendar-learner-dot" className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
                           })}
                         </div>
-                        <p className="text-[10px] leading-tight text-gray-500">โค้ช <span className="inline-block whitespace-nowrap">{dayPeople.coachCount} คน</span></p>
+                        <p className="text-[10px] leading-tight text-gray-500">
+                          โค้ช <span className="inline-block max-w-full">
+                            <span className={hasRepeatCoach ? 'font-bold text-[#153c85]' : undefined}>{coachValue}</span>{' '}{coachUnit}
+                          </span>
+                        </p>
                         {dayWalletedCount > 0 && (
                           <p data-testid="calendar-wallet-count" title={`อยู่ในกระเป๋า ${dayWalletedCount} รายการ`} className="flex items-center gap-0.5 text-[10px] leading-tight text-violet-700">
                             <RotateCcw aria-hidden="true" className="h-2.5 w-2.5 shrink-0" />
@@ -783,22 +802,32 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
             </div>
             <p className="mt-3 text-xs leading-relaxed text-gray-500">
               ตัวเลขและจุดนับผู้เรียนในตาราง ไม่รวมรายการในกระเป๋า (แสดงจุดสูงสุด 10 คน)
-              {' '}ผู้เรียนและโค้ชนับคนไม่ซ้ำในวันหรือช่วงที่เลือก ส่วนรายการเรียนนับแยกแต่ละรอบ
-              {' '}จำนวนผู้เรียนรวมคนที่รอเช็กชื่อ จำนวนโค้ชนับจากการจัดกลุ่มที่มีผู้เรียนในตาราง
+              {' '}ผู้เรียนรวมคนที่รอเช็กชื่อและนับคนไม่ซ้ำ ส่วนรายการเรียนนับแยกแต่ละรอบ
+              {' '}ช่องวันที่แสดงจำนวนโค้ชเป็นคน หากมีโค้ชสอนหลายรอบ ตัวเลขสีน้ำเงินเข้มแสดงรอบสอนรวมของโค้ชทุกคน กดวันที่เพื่อดูรอบสอนรายคน
             </p>
           </CardContent>
         </Card>
 
         <Card className="border-gray-200">
           <CardContent className="p-0">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <div>
+            <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+              <div className="min-w-0">
                 <p className="font-semibold text-[#153c85]">
                   {selectedDate ? formatDisplayDate(selectedDate) : `ภาพรวมเดือน${MONTH_NAMES_TH[month]}`}
                 </p>
-                <p className="text-xs text-gray-500" data-testid="admin-schedule-detail-people">
-                  ผู้เรียน {displayedPeople.learnerCount} คน • โค้ช {displayedPeople.coachCount} คน
-                </p>
+                <div className="flex flex-wrap gap-x-1 text-xs text-gray-500" data-testid="admin-schedule-detail-people">
+                  <span>ผู้เรียน {displayedPeople.learnerCount} คน</span>
+                  {selectedCoachRounds.length > 0 ? (
+                    selectedCoachRounds.map(({ id, name, count }, index) => (
+                      <span key={id} className="max-w-full break-words">
+                        {index === 0 ? '·' : '/'} {name.startsWith('โค้ช') ? name : `โค้ช ${name}`}{' '}
+                        <strong className="whitespace-nowrap font-bold text-[#153c85]">{count} รอบ</strong>
+                      </span>
+                    ))
+                  ) : (
+                    <span>• โค้ช {displayedPeople.coachCount} คน</span>
+                  )}
+                </div>
               </div>
               {selectedDate && (
                 <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>

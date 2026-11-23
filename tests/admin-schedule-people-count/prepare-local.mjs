@@ -32,6 +32,30 @@ const extra = { ...fixture.sessions[0], id: 'private-learner', child_id: null, d
 const data = { ...fixture, sessions: [...fixture.sessions, { ...walletOnly, id: 'wallet-only', date: '2026-11-17', schedule_slot_id: 'slot-wallet' }, extra], groups: [...fixture.groups, { ...fixture.groups[0], id: 'private-group', schedule_slot_id: 'slot-private', coach_id: 'coach-b', profiles: { id: 'coach-b', full_name: 'โค้ชคนที่สอง', role: 'coach' }, coach_assignment_group_students: [{ booking_session_id: 'private-learner' }] }], walletCredits: [...fixture.walletCredits, { original_session_id: 'wallet-only', status: 'active' }] }
 data.sessions.push({ ...extra, id: 'adult-learner', date: '2026-11-19', schedule_slot_id: 'slot-adult', bookings: { ...extra.bookings, user_id: 'adult-learner', course_type_id: 'adult', course_types: { name: 'adult_group' } } })
 data.groups.push({ ...data.groups.at(-1), id: 'adult-group', schedule_slot_id: 'slot-adult', coach_id: 'coach-c', profiles: { id: 'coach-c', full_name: 'โค้ชคนที่สาม', role: 'coach' }, coach_assignment_group_students: [{ booking_session_id: 'adult-learner' }] })
+const firstRama2 = ['rama2-first-1', 'rama2-first-2']
+const secondRama2 = Array.from({ length: 9 }, (_, index) => `rama2-second-${index + 1}`)
+for (const [slot, start, end, ids] of [
+  ['rama2-first', '15:00', '17:00', firstRama2],
+  ['rama2-second', '17:00', '19:00', secondRama2],
+]) {
+  data.sessions.push(...ids.map(id => ({
+    ...fixture.sessions[0], id, child_id: id, date: '2026-11-23',
+    start_time: start, end_time: end, schedule_slot_id: slot,
+    branch_id: 'rama2', branches: { name: 'พระราม 2' },
+    children: { full_name: id, nickname: id },
+  })))
+}
+for (const [id, slot, coachId, name, ids] of [
+  ['rama2-a', 'rama2-first', 'coach-jaa', 'โค้ช จ้า NA ราม2', firstRama2],
+  ['rama2-b', 'rama2-second', 'coach-jaa', 'โค้ช จ้า NA ราม2', secondRama2.slice(0, 4)],
+  ['rama2-c', 'rama2-second', 'coach-wasan', 'โค้ช วสันต์ NA พระราม2', secondRama2.slice(4)],
+]) {
+  data.groups.push({
+    ...fixture.groups[0], id, schedule_slot_id: slot, coach_id: coachId,
+    profiles: { id: coachId, full_name: name, role: 'coach' },
+    coach_assignment_group_students: ids.map(booking_session_id => ({ booking_session_id })),
+  })
+}
 write(path.join(ui, 'src', 'fixture.json'), JSON.stringify(data))
 write(path.join(ui, 'src/app/globals.css'), fs.readFileSync(path.join(root, 'src/app/globals.css')))
 write(path.join(ui, 'src/app/layout.tsx'), `import './globals.css'\nexport default function Layout({ children }: { children: React.ReactNode }) { return <html lang="th"><body><main className="mx-auto max-w-7xl p-3">{children}</main></body></html> }\n`)
@@ -40,7 +64,7 @@ import { buildAdminScheduleMonthSummary, type AdminScheduleGroupRow, type AdminS
 import data from '@/fixture.json'
 export default function Page() {
  const summary = buildAdminScheduleMonthSummary({ ...data, groups: data.groups as AdminScheduleGroupRow[], walletCredits: data.walletCredits as AdminScheduleWalletCreditRow[] })
- return <SchedulesClient summary={summary} initialYear={2026} initialMonth={11} initialPerformance={{durationMs:0,externalCalls:0,rows:{},calls:{}}} branches={[{id:'branch-a',name:'สาขาทดสอบ',slug:'test'},{id:'branch-b',name:'สาขาที่สอง',slug:'second'}]} />
+ return <SchedulesClient summary={summary} initialYear={2026} initialMonth={11} initialPerformance={{durationMs:0,externalCalls:0,rows:{},calls:{}}} branches={[{id:'branch-a',name:'สาขาทดสอบ',slug:'test'},{id:'branch-b',name:'สาขาที่สอง',slug:'second'},{id:'rama2',name:'พระราม 2',slug:'rama2'}]} />
 }
 `)
 write(path.join(ui, 'src/app/api/admin/schedules/day/route.ts'), `import { NextRequest, NextResponse } from 'next/server'

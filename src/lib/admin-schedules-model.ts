@@ -214,14 +214,24 @@ export function getAdminSchedulePeopleSummary(rounds: {
   course_type: string
 }[]) {
   const learners = new Map<string, { key: string; courseType: string }>()
-  const coachIds = new Set<string>()
+  const coachRoundCounts = new Map<string, number>()
+  let coachRoundCount = 0
   rounds.forEach((round) => {
     round.learner_keys.forEach((key) => {
       if (!learners.has(key)) learners.set(key, { key, courseType: round.course_type })
     })
-    round.coach_ids.forEach((id) => coachIds.add(id))
+    round.coach_ids.forEach((id) => {
+      coachRoundCounts.set(id, (coachRoundCounts.get(id) ?? 0) + 1)
+      coachRoundCount += 1
+    })
   })
-  return { learnerCount: learners.size, coachCount: coachIds.size, markers: Array.from(learners.values()) }
+  return {
+    learnerCount: learners.size,
+    coachCount: coachRoundCounts.size,
+    coachRoundCount,
+    coachRoundCounts,
+    markers: Array.from(learners.values()),
+  }
 }
 
 function buildSummaryTotals(sessions: AdminScheduleSessionRow[], rounds: AdminScheduleSummaryRound[]) {

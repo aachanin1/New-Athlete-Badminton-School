@@ -19,12 +19,17 @@ const page = await context.newPage()
 page.on('pageerror', e => errors.push(e.message))
 page.on('response', res => { if (res.url().includes('/api/admin/schedules/')) requests.push({ url: res.url(), status: res.status() }) })
 const day = date => page.getByTestId('admin-schedule-calendar-day-' + date)
-async function expectCounts(date, learners, coaches, wallets) {
+async function expectCounts(date, learners, coaches, wallets, coachUnit = 'คน') {
   await expect(day(date).getByTestId('calendar-learner-count')).toHaveText(String(learners))
-  await expect(day(date).getByText(`โค้ช ${coaches} คน`, { exact: true })).toBeVisible()
+  const coachLabel = day(date).getByText(`โค้ช ${coaches} ${coachUnit}`, { exact: true })
+  await expect(coachLabel).toBeVisible()
   await expect(day(date).getByTestId('calendar-learner-dot')).toHaveCount(Math.min(learners, 10))
   if (wallets) await expect(day(date).getByTestId('calendar-wallet-count')).toHaveText(String(wallets))
-  assert.doesNotMatch(await day(date).innerText(), /รอบ/)
+  if (coachUnit === 'รอบ') {
+    const value = coachLabel.getByText(String(coaches), { exact: true })
+    await expect(value).toHaveCSS('color', 'rgb(21, 60, 133)')
+    await expect(value).toHaveCSS('font-weight', '700')
+  }
 }
 async function expectTotals(learners, coaches, sessions) {
   const totals = page.getByTestId('admin-schedule-totals')
@@ -32,17 +37,19 @@ async function expectTotals(learners, coaches, sessions) {
   await expect(totals.getByText('ผู้เรียนในตาราง', { exact: true }).locator('..').locator('p').last()).toHaveText(String(learners))
   await expect(totals.getByText('รายการเรียนในตาราง', { exact: true }).locator('..').locator('p').last()).toHaveText(String(sessions))
 }
-async function noOverflow(label) {
+async function noOverflow(label, date = '2026-11-16') {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), label + ' horizontal overflow')
-  const boxes = await day('2026-11-16').locator('p').evaluateAll(nodes => nodes.map(n => ({ width: n.clientWidth, scroll: n.scrollWidth })))
+  const boxes = await day(date).locator('p').evaluateAll(nodes => nodes.map(n => ({ width: n.clientWidth, scroll: n.scrollWidth })))
   assert.ok(boxes.every(b => b.scroll <= b.width), label + ' calendar label overflow')
 }
 try {
   const response = await page.goto(base, { waitUntil: 'networkidle', timeout: 120000 })
   assert.equal(response.status(), 200)
-  await expectTotals(4, 3, 4)
-  await expectCounts('2026-11-16', 2, 1, 2)
+  await expectTotals(15, 5, 15)
+  await expectCounts('2026-11-16', 2, 2, 2, 'รอบ')
   await expectCounts('2026-11-17', 0, 0, 1)
+  await expectCounts('2026-11-18', 1, 1, 0)
+  await expectCounts('2026-11-23', 11, 3, 0, 'รอบ')
   await expect(page.getByTestId('admin-schedule-day-summary-2026-11-16')).toContainText('ผู้เรียน 2 คน')
   await expect(page.getByTestId('admin-schedule-day-summary-2026-11-16')).toContainText('โค้ช 1 คน')
   checks.push('month cards, day summaries, calendar numbers and dots exclude Wallet; duplicate coach counted once')
@@ -77,7 +84,7 @@ try {
   checks.push('course group backgrounds and round accents match blue/green/orange legend; Wallet stays violet')
   await page.setViewportSize({ width: 390, height: 844 })
   await day('2026-11-16').click()
-  await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText('ผู้เรียน 2 คน • โค้ช 1 คน')
+  await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText(/ผู้เรียน 2 คน\s*· โค้ชทดสอบ 2 รอบ/)
   await expect(page.getByText('active-a', { exact: true })).toBeVisible()
   await expect(page.getByText('wallet-a', { exact: true })).toBeVisible()
   await expect(page.getByText('wallet-b', { exact: true })).toBeVisible()
@@ -87,9 +94,27 @@ try {
   checks.push('selected day uses actual model response; round totals exclude Wallet, Wallet roster retained')
   await day('2026-11-17').click()
   await expect(page.getByText('wallet-a', { exact: true })).toBeVisible()
-  await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText('ผู้เรียน 0 คน • โค้ช 0 คน')
-  await expect(page.getByText('ผู้เรียน 0 คน', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText(/ผู้เรียน 0 คน\s*• โค้ช 0 คน/)
+  await expect(page.getByTestId('admin-schedule-round-slot:slot-wallet').getByText('ผู้เรียน 0 คน', { exact: true })).toBeVisible()
   checks.push('Wallet-only day still opens with zero active people and zero coaches')
+  await page.getByRole('button', { name: 'กลับภาพรวมเดือน', exact: true }).click()
+  await page.getByRole('combobox').first().click()
+  await page.getByRole('option', { name: 'พระราม 2', exact: true }).click()
+  await expectTotals(11, 2, 11)
+  await expectCounts('2026-11-23', 11, 3, 0, 'รอบ')
+  await day('2026-11-23').click()
+  const rama2Detail = page.getByTestId('admin-schedule-detail-people')
+  await expect(rama2Detail).toHaveText(/ผู้เรียน 11 คน\s*· โค้ช จ้า NA ราม2 2 รอบ\s*\/ โค้ช วสันต์ NA พระราม2 1 รอบ/)
+  for (const text of ['2 รอบ', '1 รอบ']) {
+    await expect(rama2Detail.getByText(text, { exact: true })).toHaveCSS('color', 'rgb(21, 60, 133)')
+  }
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await noOverflow('Rama 2 ' + width, '2026-11-23')
+    assert.ok(await rama2Detail.evaluate(element => element.scrollWidth <= element.clientWidth))
+    await rama2Detail.screenshot({ path: path.join(output, `rama2-detail-${width}.png`) })
+  }
+  checks.push('Rama 2 has 11 learners, 3 round assignments and names with 2 and 1 blue rounds')
   await page.getByRole('button', { name: 'กลับภาพรวมเดือน', exact: true }).click()
   await page.getByRole('combobox').first().click()
   await page.getByRole('option', { name: 'สาขาที่สอง', exact: true }).click()
@@ -107,7 +132,7 @@ try {
   await expectTotals(1, 1, 1)
   await expectCounts('2026-11-16', 1, 1, 2)
   await day('2026-11-16').click()
-  await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText('ผู้เรียน 1 คน • โค้ช 1 คน')
+  await expect(page.getByTestId('admin-schedule-detail-people')).toHaveText(/ผู้เรียน 1 คน\s*· โค้ชทดสอบ 1 รอบ/)
   await expect(page.getByText('wallet-a', { exact: true })).toBeVisible()
   await expect(page.getByText('active-b', { exact: true })).toHaveCount(0)
   checks.push('Wallet name search finds its round and consistently counts its full active roster')
