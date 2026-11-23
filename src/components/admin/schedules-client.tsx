@@ -825,10 +825,10 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                     {selectedDate ? formatDisplayDate(selectedDate) : `ภาพรวมเดือน${MONTH_NAMES_TH[month]}`}
                   </p>
                   <p className="text-xs text-gray-500" data-testid="admin-schedule-detail-people">
-                    ผู้เรียน {displayedPeople.learnerCount} คน · โค้ช {displayedPeople.coachCount}{' '}
-                    {selectedDate ? (
-                      <>(<strong className="whitespace-nowrap font-bold text-[#153c85]">{displayedPeople.coachRoundCount} รอบ</strong>)</>
-                    ) : 'คน'}
+                    ผู้เรียน {displayedPeople.learnerCount} คน · โค้ช {displayedPeople.coachCount} คน
+                    {selectedDate && (
+                      <>{' '}(<strong className="whitespace-nowrap font-bold text-[#153c85]">{displayedPeople.coachRoundCount} รอบ</strong>)</>
+                    )}
                   </p>
                 </div>
                 {selectedDate && (
