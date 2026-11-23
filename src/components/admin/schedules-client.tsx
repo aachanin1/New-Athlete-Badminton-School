@@ -240,6 +240,8 @@ function getCoachLabel(coachCount: number, coachRoundCount: number) {
     : { value: coachCount, unit: 'คน', valueClassName: undefined }
 }
 
+const COACH_TITLE = /^โค[้ั]ช\s*/
+
 function formatLevel(session: ScheduleSession) {
   return formatScheduleLevel(session.level, session.level_name)
 }
@@ -560,7 +562,8 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
       const name = selectedCoachNames.get(id)
       return name ? [{ id, name, count }] : []
     })
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'th'))
+    .sort((a, b) => b.count - a.count
+      || a.name.replace(COACH_TITLE, '').localeCompare(b.name.replace(COACH_TITLE, ''), 'th'))
   const totalBranches = new Set(filteredSummaryRounds.map((round) => round.branch_id)).size
   const filteredSessionCount = filteredSummaryRounds.reduce((sum, round) => sum + round.session_count, 0)
   const unassignedSessions = filteredSummaryRounds.reduce((sum, round) => sum + round.waiting_coach_count, 0)
@@ -815,29 +818,35 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
 
         <Card className="border-gray-200">
           <CardContent className="p-0">
-            <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
-              <div className="min-w-0">
-                <p className="font-semibold text-[#153c85]">
-                  {selectedDate ? formatDisplayDate(selectedDate) : `ภาพรวมเดือน${MONTH_NAMES_TH[month]}`}
-                </p>
-                <div className="flex flex-wrap gap-x-1 text-xs text-gray-500" data-testid="admin-schedule-detail-people">
-                  <span>ผู้เรียน {displayedPeople.learnerCount} คน</span>
-                  {selectedCoachRounds.length > 0 ? (
-                    selectedCoachRounds.map(({ id, name, count }, index) => (
-                      <span key={id} className="max-w-full break-words">
-                        {index === 0 ? '·' : '/'} {/^โค[้ั]ช/.test(name) ? name : `โค้ช ${name}`}{' '}
-                        <strong className="whitespace-nowrap font-bold text-[#153c85]">{count} รอบ</strong>
-                      </span>
-                    ))
-                  ) : (
-                    <span>• โค้ช {displayedPeople.coachCount} คน</span>
-                  )}
+            <div className="border-b px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-[#153c85]">
+                    {selectedDate ? formatDisplayDate(selectedDate) : `ภาพรวมเดือน${MONTH_NAMES_TH[month]}`}
+                  </p>
+                  <p className="text-xs text-gray-500" data-testid="admin-schedule-detail-people">
+                    ผู้เรียน {displayedPeople.learnerCount} คน · โค้ช {displayedPeople.coachCount}{' '}
+                    {selectedDate ? (
+                      <>(<strong className="whitespace-nowrap font-bold text-[#153c85]">{displayedPeople.coachRoundCount} รอบ</strong>)</>
+                    ) : 'คน'}
+                  </p>
                 </div>
+                {selectedDate && (
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
+                    กลับภาพรวมเดือน
+                  </Button>
+                )}
               </div>
-              {selectedDate && (
-                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
-                  กลับภาพรวมเดือน
-                </Button>
+              {selectedCoachRounds.length > 0 && (
+                <ul aria-label="รอบสอนรายโค้ช" data-testid="admin-schedule-coach-rounds"
+                  className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-x-4 gap-y-1 text-xs text-gray-500">
+                  {selectedCoachRounds.map(({ id, name, count }) => (
+                    <li key={id} className="flex min-w-0 flex-wrap items-baseline gap-x-1">
+                      <span className="min-w-0 break-words">{COACH_TITLE.test(name) ? name : `โค้ช ${name}`}</span>
+                      <strong className="whitespace-nowrap font-bold text-[#153c85]">{count} รอบ</strong>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 

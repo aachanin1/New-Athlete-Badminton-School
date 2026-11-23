@@ -56,6 +56,26 @@ for (const [id, slot, coachId, name, ids] of [
     coach_assignment_group_students: ids.map(booking_session_id => ({ booking_session_id })),
   })
 }
+const additionalCoaches = [
+  'โค้ช ดีไซน์ NA East Ville', 'โค้ช บอส NA ทวีวัฒนา', 'โค้ช ภูมิ NA สุวรรณภูมิ',
+  'โค้ช วิมุต NA แจ้งวัฒนะ', 'โคัช กูร NA แจ้งวัฒนะ', 'โคัช เบล NA เทพารักษ์', 'โคัช อิค NA ราม',
+]
+additionalCoaches.forEach((name, index) => {
+  const slot = `other-round-${index}`
+  const coachId = `other-coach-${index}`
+  const ids = [`${slot}-a`, `${slot}-b`]
+  data.sessions.push(...ids.map(id => ({
+    ...fixture.sessions[0], id, child_id: id, date: '2026-11-23',
+    start_time: '17:00', end_time: '19:00', schedule_slot_id: slot,
+    branch_id: 'other', branches: { name: 'สาขาจำลองอื่น' },
+    children: { full_name: id, nickname: id },
+  })))
+  data.groups.push({
+    ...fixture.groups[0], id: slot, schedule_slot_id: slot, coach_id: coachId,
+    profiles: { id: coachId, full_name: name, role: 'coach' },
+    coach_assignment_group_students: ids.map(booking_session_id => ({ booking_session_id })),
+  })
+})
 write(path.join(ui, 'src', 'fixture.json'), JSON.stringify(data))
 write(path.join(ui, 'src/app/globals.css'), fs.readFileSync(path.join(root, 'src/app/globals.css')))
 write(path.join(ui, 'src/app/layout.tsx'), `import './globals.css'\nexport default function Layout({ children }: { children: React.ReactNode }) { return <html lang="th"><body><main className="mx-auto max-w-7xl p-3">{children}</main></body></html> }\n`)
@@ -64,7 +84,7 @@ import { buildAdminScheduleMonthSummary, type AdminScheduleGroupRow, type AdminS
 import data from '@/fixture.json'
 export default function Page() {
  const summary = buildAdminScheduleMonthSummary({ ...data, groups: data.groups as AdminScheduleGroupRow[], walletCredits: data.walletCredits as AdminScheduleWalletCreditRow[] })
- return <SchedulesClient summary={summary} initialYear={2026} initialMonth={11} initialPerformance={{durationMs:0,externalCalls:0,rows:{},calls:{}}} branches={[{id:'branch-a',name:'สาขาทดสอบ',slug:'test'},{id:'branch-b',name:'สาขาที่สอง',slug:'second'},{id:'rama2',name:'พระราม 2',slug:'rama2'}]} />
+ return <SchedulesClient summary={summary} initialYear={2026} initialMonth={11} initialPerformance={{durationMs:0,externalCalls:0,rows:{},calls:{}}} branches={[{id:'branch-a',name:'สาขาทดสอบ',slug:'test'},{id:'branch-b',name:'สาขาที่สอง',slug:'second'},{id:'rama2',name:'พระราม 2',slug:'rama2'},{id:'other',name:'สาขาจำลองอื่น',slug:'other'}]} />
 }
 `)
 write(path.join(ui, 'src/app/api/admin/schedules/day/route.ts'), `import { NextRequest, NextResponse } from 'next/server'
